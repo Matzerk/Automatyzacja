@@ -6,8 +6,9 @@ from pydantic import BaseModel, Field
 
 
 class Act(BaseModel):
-    """Akt z Dziennika Ustaw (znormalizowany z API ELI Sejmu)."""
+    """Akt z Dziennika Ustaw (DU) lub Monitora Polskiego (MP), znormalizowany z API ELI."""
 
+    publisher: str = "DU"  # DU = Dziennik Ustaw, MP = Monitor Polski
     eli: str
     year: int
     pos: int
@@ -20,12 +21,13 @@ class Act(BaseModel):
 
     @property
     def display(self) -> str:
-        return f"Dz.U. {self.year} poz. {self.pos}"
+        label = "M.P." if self.publisher == "MP" else "Dz.U."
+        return f"{label} {self.year} poz. {self.pos}"
 
     @property
     def key(self) -> str:
         """Stabilny identyfikator (idempotencja / klucz manifestu)."""
-        return f"DU-{self.year}-{self.pos}"
+        return f"{self.publisher}-{self.year}-{self.pos}"
 
 
 class TriageResult(BaseModel):
@@ -34,6 +36,9 @@ class TriageResult(BaseModel):
     Schema wysyłana do API nie obsługuje min/max liczb — walidujemy lekko po stronie klienta.
     """
 
+    layperson_interest: int = Field(
+        description="Czy temat jest CIEKAWY dla przeciętnego nie-prawnika, 0–3 (kryterium nadrzędne)"
+    )
     broad_audience: int = Field(description="Szeroka grupa odbiorców, 0–3")
     is_codex: bool = Field(description="Czy dotyczy ustawy kodeksowej (KC/KK/KPK/KPC/KP/Ordynacja)")
     timing_days: int | None = Field(default=None, description="Dni do wejścia w życie; null jeśli nieznane")

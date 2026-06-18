@@ -35,7 +35,7 @@ istniejących → recenzja przez osobny model → wersja v2 → publikacja**. Kr
 
 | Etap | Plik | Co robi |
 |------|------|---------|
-| Ingest | `ingest.py` | Akty z **api.sejm.gov.pl/eli** (Dz.U., darmowe, bez klucza) |
+| Ingest | `ingest.py` | Świeże akty z **api.sejm.gov.pl/eli** — Dz.U. (DU) + Monitor Polski (MP), okno 21 dni |
 | Triage + routing | `triage.py` | Structured output: ocena 0–10 + serwis + kategoria + kąt |
 | Research | `research.py` | `web_search` zbiera źródła i komentarze z atrybucją |
 | Generacja v1 | `generate.py` | opus-4-8, format **identyczny z artykułami wzorcowymi** (cache) |
@@ -68,18 +68,27 @@ cp .env.example .env        # i wpisz ANTHROPIC_API_KEY
 ```bash
 export PYTHONPATH=src
 
-# 1. Podejrzyj świeże akty z Dz.U.
-python -m lexine.cli ingest --year 2026 --since 2026-05-01 --limit 20
+# 1. Podejrzyj świeże akty (DU+MP) z okna ostatnich 21 dni
+python -m lexine.cli ingest --freshness-days 21
 
-# 2. Oceń i zrutuj (bez generacji — sama selekcja)
-python -m lexine.cli triage --year 2026 --limit 15
+# 2. Oceń i zrutuj (kolumna „ciekawość 0–3" dla nie-prawnika)
+python -m lexine.cli triage --freshness-days 14
 
 # 3. Pełny przebieg → drafty do kolejki redakcyjnej (max 3 artykuły)
-python -m lexine.cli run --year 2026 --since 2026-05-01 --max 3
+python -m lexine.cli run --max 3
 
 # Dry-run: pokaż co by powstało, bez płatnych wywołań generacji
-python -m lexine.cli run --year 2026 --dry-run
+python -m lexine.cli run --dry-run
 ```
+
+### Świeżość i odbiorca (twarde reguły)
+
+- **Świeżość** — bierzemy tylko akty **ogłoszone w ostatnich ~21 dniach** (maks.
+  2–3 tygodnie). Steruje `--freshness-days` lub `LEXINE_FRESHNESS_DAYS`.
+- **Ciekawe dla nie-prawnika** — triage ocenia osobny wymiar `layperson_interest`
+  (0–3) jako **kryterium nadrzędne**; akty techniczne/administracyjne (częste w MP)
+  są odrzucane. Próg: `LEXINE_MIN_LAYPERSON` (domyślnie 2).
+- **Źródła** — Dziennik Ustaw (`DU`) **i Monitor Polski** (`MP`); `--publishers DU,MP`.
 
 Dla każdego tematu w `output/review_queue/<serwis>/` powstaje komplet:
 

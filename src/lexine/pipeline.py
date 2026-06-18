@@ -16,7 +16,15 @@ import json
 from dataclasses import dataclass, field
 
 from . import ingest
-from .config import OUTPUT_DIR, REVIEW_ROUNDS, TRIAGE_THRESHOLD, load_services
+from .config import (
+    FRESHNESS_DAYS,
+    MIN_LAYPERSON_INTEREST,
+    OUTPUT_DIR,
+    PUBLISHERS,
+    REVIEW_ROUNDS,
+    TRIAGE_THRESHOLD,
+    load_services,
+)
 from .generate import generate_article
 from .models import Act, ReviewResult, TriageResult
 from .publish import strip_panel
@@ -41,6 +49,7 @@ class RunReport:
     scanned: int = 0
     skipped_processed: int = 0
     triaged: int = 0
+    rejected_uninteresting: int = 0
     selected: int = 0
     skipped_cadence: list[str] = field(default_factory=list)
     drafts: list[dict] = field(default_factory=list)
@@ -104,19 +113,23 @@ def _produce(act: Act, triage: TriageResult) -> dict:
 
 
 def run(
-    year: int,
     *,
-    since: str | None = None,
-    scan_limit: int | None = 60,
+    freshness_days: int = FRESHNESS_DAYS,
+    publishers: tuple[str, ...] = PUBLISHERS,
+    scan_limit: int | None = 150,
     max_articles: int = 5,
     threshold: float = TRIAGE_THRESHOLD,
+    min_layperson: int = MIN_LAYPERSON_INTEREST,
     dry_run: bool = False,
 ) -> RunReport:
     services = load_services()
     manifest = Manifest()
     report = RunReport()
 
-    acts = ingest.list_acts(year, since=since, limit=scan_limit)
+    # Tylko świeże akty (DU+MP) z okna ostatnich `freshness_days` dni.
+    acts = ingest.list_recent(
+        publishers=publishers, freshness_days=freshness_days, limit=scan_limit
+    )
     report.scanned = len(acts)
 
     # 1) Triage + routing każdego świeżego aktu.
@@ -131,8 +144,13 @@ def run(
         manifest.mark_processed(
             act.key, {"score": triage.total_score, "service": triage.target_service}
         )
-        if triage.worth_writing and triage.total_score >= threshold:
-            candidates.append(Candidate(full, triage))
+        # Twardy próg „ciekawe dla nie-prawnika" + jakość.
+        if not (triage.worth_writing and triage.total_score >= threshold):
+            continue
+        if triage.layperson_interest < min_layperson:
+            report.rejected_uninteresting += 1
+            continue
+        candidates.append(Candidate(full, triage))
 
     # 2) Najlepsze najpierw; eporada24 (tier 1) z lekkim priorytetem przy remisie.
     candidates.sort(

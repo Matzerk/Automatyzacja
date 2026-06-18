@@ -44,6 +44,15 @@ MAX_TOKENS_REVISE = 32000
 # Próg jakości tematu (0–10) — poniżej akt nie trafia do produkcji.
 TRIAGE_THRESHOLD = 6.0
 
+# Okno świeżości: bierzemy tylko akty ogłoszone w ostatnich N dni (maks. 2–3 tygodnie).
+FRESHNESS_DAYS = int(os.getenv("LEXINE_FRESHNESS_DAYS", "21"))
+
+# Wydawcy źródeł pierwotnych: DU = Dziennik Ustaw, MP = Monitor Polski.
+PUBLISHERS = tuple(os.getenv("LEXINE_PUBLISHERS", "DU,MP").split(","))
+
+# Minimalny poziom „ciekawe dla nie-prawnika" (0–3) wymagany do produkcji.
+MIN_LAYPERSON_INTEREST = int(os.getenv("LEXINE_MIN_LAYPERSON", "2"))
+
 # Oficjalne API Dziennika Ustaw (ELI, Sejm RP) — darmowe, bez klucza.
 ELI_BASE = "https://api.sejm.gov.pl/eli"
 
