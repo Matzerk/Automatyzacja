@@ -53,6 +53,9 @@ PUBLISHERS = tuple(os.getenv("LEXINE_PUBLISHERS", "DU,MP").split(","))
 # Minimalny poziom „ciekawe dla nie-prawnika" (0–3) wymagany do produkcji.
 MIN_LAYPERSON_INTEREST = int(os.getenv("LEXINE_MIN_LAYPERSON", "2"))
 
+# Ile razy ponawiać akt zakończony błędem, zanim go odpuścimy.
+MAX_RETRIES = int(os.getenv("LEXINE_MAX_RETRIES", "2"))
+
 # Oficjalne API Dziennika Ustaw (ELI, Sejm RP) — darmowe, bez klucza.
 ELI_BASE = "https://api.sejm.gov.pl/eli"
 

@@ -1,27 +1,32 @@
 """Orkiestracja pełnego przepływu:
 
-  ingest (Dz.U.) → triage+routing → research → generacja v1
+  ingest (DU+MP, świeże) → triage+routing → research → generacja v1
   → recenzja (inny model + web_search) → wersja v2 → wersja publikacyjna (bez panelu)
 
-Reguły: idempotencja + jakość (próg) + kadencja per serwis (priorytet eporada24).
-Nic nie jest publikowane automatycznie — artefakty trafiają do kolejki redakcyjnej.
+Reguły: idempotencja + jakość + „ciekawe dla nie-prawnika" + kadencja per serwis.
+Odporność: każdy temat w izolacji (błąd jednego nie wywraca przebiegu), stan
+zapisywany przyrostowo, akty z błędem ponawiane do MAX_RETRIES. Nic nie jest
+publikowane automatycznie — artefakty trafiają do kolejki redakcyjnej.
 
-Źródła: na razie wyłącznie Dziennik Ustaw (API ELI). Warstwa `ingest` jest celowo
-wydzielona, więc dołożenie kolejnych źródeł (web_search/RSS/RCL) nie ruszy reszty.
+Źródła: na razie Dz.U. + Monitor Polski (ELI). Warstwa `ingest` wydzielona pod
+kolejne źródła (proces legislacyjny Sejmu, RCL, orzecznictwo, RSS).
 """
 
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass, field
 
 from . import ingest
 from .config import (
     FRESHNESS_DAYS,
+    MAX_RETRIES,
     MIN_LAYPERSON_INTEREST,
     OUTPUT_DIR,
     PUBLISHERS,
     REVIEW_ROUNDS,
+    STATE_DIR,
     TRIAGE_THRESHOLD,
     load_services,
 )
@@ -36,6 +41,19 @@ from .triage import triage_act
 from .verify import split_output
 
 REVIEW_QUEUE = OUTPUT_DIR / "review_queue"
+
+logger = logging.getLogger("lexine")
+
+
+def _setup_logging() -> None:
+    if logger.handlers:
+        return
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    logger.setLevel(logging.INFO)
+    fmt = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
+    fh = logging.FileHandler(STATE_DIR / "pipeline.log", encoding="utf-8")
+    fh.setFormatter(fmt)
+    logger.addHandler(fh)
 
 
 @dataclass
@@ -53,6 +71,7 @@ class RunReport:
     selected: int = 0
     skipped_cadence: list[str] = field(default_factory=list)
     drafts: list[dict] = field(default_factory=list)
+    errors: list[dict] = field(default_factory=list)
 
 
 def _produce(act: Act, triage: TriageResult) -> dict:
@@ -60,22 +79,20 @@ def _produce(act: Act, triage: TriageResult) -> dict:
     act_text = ingest.fetch_text(act)
     brief = research_act(act, triage)
 
-    # v1
     html_v1 = split_output(generate_article(act, triage, brief, act_text)).html
 
-    # recenzja → v2 (REVIEW_ROUNDS rund; domyślnie 1)
     current_html = html_v1
     review: ReviewResult | None = None
     html_v2 = html_v1
-    for r in range(max(1, REVIEW_ROUNDS)):
+    for _ in range(max(1, REVIEW_ROUNDS)):
         review = review_article(act, current_html)
         html_v2 = split_output(revise_article(act, triage, current_html, review)).html
         if review.approved and not review.has_critical:
             break
-        current_html = html_v2  # kolejna runda nanosi na świeższą wersję
+        current_html = html_v2
 
     publication = strip_panel(html_v2)
-    final = split_output(html_v2)  # placeholdery pozostałe w v2
+    final = split_output(html_v2)
 
     service_dir = REVIEW_QUEUE / triage.target_service
     service_dir.mkdir(parents=True, exist_ok=True)
@@ -120,35 +137,48 @@ def run(
     max_articles: int = 5,
     threshold: float = TRIAGE_THRESHOLD,
     min_layperson: int = MIN_LAYPERSON_INTEREST,
+    max_retries: int = MAX_RETRIES,
     dry_run: bool = False,
 ) -> RunReport:
+    _setup_logging()
     services = load_services()
     manifest = Manifest()
     report = RunReport()
+    logger.info("=== START run (świeżość=%sd, wydawcy=%s) ===", freshness_days, publishers)
 
-    # Tylko świeże akty (DU+MP) z okna ostatnich `freshness_days` dni.
     acts = ingest.list_recent(
         publishers=publishers, freshness_days=freshness_days, limit=scan_limit
     )
     report.scanned = len(acts)
 
-    # 1) Triage + routing każdego świeżego aktu.
+    # 1) Triage + routing — każdy akt w izolacji; stan zapisywany na bieżąco.
     candidates: list[Candidate] = []
     for act in acts:
-        if manifest.is_processed(act.key):
+        if manifest.should_skip(act.key, max_retries):
             report.skipped_processed += 1
             continue
-        full = ingest.fetch_details(act)
-        triage = triage_act(full, services)
+        try:
+            full = ingest.fetch_details(act)
+            triage = triage_act(full, services)
+        except Exception as exc:  # błąd ingestu/oceny — ponów następnym razem
+            logger.exception("Triage failed for %s", act.key)
+            report.errors.append({"act_key": act.key, "stage": "triage", "error": str(exc)})
+            if not dry_run:
+                manifest.set_failed(act.key, exc, stage="triage")
+                manifest.save()
+            continue
+
         report.triaged += 1
-        manifest.mark_processed(
-            act.key, {"score": triage.total_score, "service": triage.target_service}
-        )
-        # Twardy próg „ciekawe dla nie-prawnika" + jakość.
         if not (triage.worth_writing and triage.total_score >= threshold):
+            if not dry_run:
+                manifest.set_skip(act.key, score=triage.total_score, reason="poniżej progu")
+                manifest.save()
             continue
         if triage.layperson_interest < min_layperson:
             report.rejected_uninteresting += 1
+            if not dry_run:
+                manifest.set_skip(act.key, score=triage.total_score, reason="nieciekawe dla nie-prawnika")
+                manifest.save()
             continue
         candidates.append(Candidate(full, triage))
 
@@ -158,7 +188,7 @@ def run(
         reverse=True,
     )
 
-    # 3) Selekcja z poszanowaniem kadencji per serwis i limitu na przebieg.
+    # 3) Produkcja z poszanowaniem kadencji i limitu; błąd jednego tematu nie przerywa reszty.
     produced = 0
     used_services: set[str] = set()
     for cand in candidates:
@@ -172,17 +202,31 @@ def run(
             continue
 
         report.selected += 1
+        used_services.add(svc.name)
+        produced += 1
+
         if dry_run:
             report.drafts.append(
                 {"act_key": cand.act.key, "service": svc.name, "score": cand.triage.total_score}
             )
-        else:
-            report.drafts.append(_produce(cand.act, cand.triage))
-            manifest.record_publish(svc.name)
+            continue
 
-        used_services.add(svc.name)
-        produced += 1
+        try:
+            meta = _produce(cand.act, cand.triage)
+        except Exception as exc:  # research/generacja/recenzja jednego tematu padła
+            logger.exception("Produce failed for %s", cand.act.key)
+            report.errors.append({"act_key": cand.act.key, "stage": "produce", "error": str(exc)})
+            manifest.set_failed(cand.act.key, exc, stage="produce", service=svc.name)
+            manifest.save()
+            continue
 
-    if not dry_run:
-        manifest.save()
+        report.drafts.append(meta)
+        manifest.set_done(cand.act.key, service=svc.name, score=cand.triage.total_score)
+        manifest.record_publish(svc.name)
+        manifest.save()  # przyrostowo — awaria nie cofa zrobionej pracy
+
+    logger.info(
+        "=== KONIEC run: wybrane=%s, drafty=%s, błędy=%s ===",
+        report.selected, len(report.drafts), len(report.errors),
+    )
     return report

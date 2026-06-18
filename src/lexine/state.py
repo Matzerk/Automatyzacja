@@ -1,15 +1,18 @@
-"""Trwały stan pipeline'u: idempotencja + kadencja per serwis.
+"""Trwały stan pipeline'u: statusy aktów + kadencja per serwis.
 
 state/manifest.json:
-  processed:  {act_key: {...}}            — co już przerobiono (anty-duplikat)
-  last_published: {service: "YYYY-MM-DD"} — kiedy ostatnio powstał draft na serwis
+  acts: {act_key: {status, attempts, score, service, triage?, error?, updated}}
+        status ∈ skip (nieciekawy/odrzucony) | done (wyprodukowany) | failed (błąd)
+  last_published: {service: "YYYY-MM-DD"}
+
+Idempotencja: akt `skip`/`done` nie wraca; `failed` ponawiamy do MAX_RETRIES.
+Stan zapisujemy PRZYROSTOWO (po każdym akcie), więc awaria nie gubi postępu.
 """
 
 from __future__ import annotations
 
 import datetime as dt
 import json
-from pathlib import Path
 
 from .config import STATE_DIR
 
@@ -22,14 +25,37 @@ class Manifest:
         if _MANIFEST.exists():
             self.data = json.loads(_MANIFEST.read_text(encoding="utf-8"))
         else:
-            self.data = {"processed": {}, "last_published": {}}
+            self.data = {}
+        self.data.setdefault("acts", {})
+        self.data.setdefault("last_published", {})
 
-    def is_processed(self, act_key: str) -> bool:
-        return act_key in self.data["processed"]
+    # --- statusy aktów ---
+    def get(self, act_key: str) -> dict | None:
+        return self.data["acts"].get(act_key)
 
-    def mark_processed(self, act_key: str, meta: dict) -> None:
-        self.data["processed"][act_key] = meta
+    def should_skip(self, act_key: str, max_retries: int) -> bool:
+        rec = self.get(act_key)
+        if not rec:
+            return False
+        if rec["status"] in ("skip", "done"):
+            return True
+        return rec["status"] == "failed" and rec.get("attempts", 0) >= max_retries
 
+    def _set(self, act_key: str, status: str, **info) -> None:
+        rec = {"status": status, "updated": dt.date.today().isoformat(), **info}
+        self.data["acts"][act_key] = rec
+
+    def set_skip(self, act_key: str, **info) -> None:
+        self._set(act_key, "skip", **info)
+
+    def set_done(self, act_key: str, **info) -> None:
+        self._set(act_key, "done", **info)
+
+    def set_failed(self, act_key: str, error: str, **info) -> None:
+        attempts = (self.get(act_key) or {}).get("attempts", 0) + 1
+        self._set(act_key, "failed", attempts=attempts, error=str(error)[:500], **info)
+
+    # --- kadencja ---
     def days_since_last(self, service: str) -> int | None:
         last = self.data["last_published"].get(service)
         if not last:

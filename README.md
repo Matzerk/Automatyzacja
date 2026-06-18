@@ -130,6 +130,17 @@ Modele nadpiszesz w `.env` (`LEXINE_MODEL_*`) lub `src/lexine/config.py`.
    `{{DO_WERYFIKACJI: ...}}`; `verify.py` zbiera je do `.json`.
 4. **Human-in-the-loop** — pipeline nie publikuje; wszystko czeka na redakcję.
 
+## Odporność (nieobsługiwane przebiegi)
+
+- **Izolacja per‑temat** — błąd jednego aktu (research/generacja/recenzja) nie
+  przerywa przebiegu; reszta leci dalej.
+- **Stan przyrostowy** — `state/manifest.json` zapisywany po każdym akcie, więc
+  awaria nie cofa już wykonanej pracy.
+- **Ponawianie** — akt z błędem dostaje status `failed` i jest ponawiany do
+  `LEXINE_MAX_RETRIES` (domyślnie 2), potem odpuszczany. Sukces → `done`,
+  nieciekawy → `skip` (bez ponownej oceny).
+- **Log** — `state/pipeline.log` (błędy + podsumowania przebiegów).
+
 ## Skalowanie i koszt
 
 - **Prompt caching** na stałym system prompcie (generacja) i rubryce (triage) —

@@ -68,6 +68,11 @@ def _cmd_run(args) -> None:
     print(f"  Ocenionych:             {report.triaged}")
     print(f"  Odrzucone (nieciekawe): {report.rejected_uninteresting}")
     print(f"  Wybranych do pisania:   {report.selected}")
+    if report.errors:
+        print(f"  Błędy (pominięte, ponowią się): {len(report.errors)}")
+        for e in report.errors[:5]:
+            print(f"    ! {e['act_key']} [{e['stage']}]: {e['error'][:80]}")
+        print("    (szczegóły: state/pipeline.log)")
     if report.skipped_cadence:
         print(f"  Pominięto (kadencja): {len(report.skipped_cadence)}")
     print(f"\n  Drafty ({'DRY-RUN' if args.dry_run else 'zapisane do kolejki redakcyjnej'}):")
