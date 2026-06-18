@@ -27,11 +27,19 @@ STATE_DIR = ROOT / "state"
 MODEL_GENERATE = os.getenv("LEXINE_MODEL_GENERATE", "claude-opus-4-8")
 MODEL_TRIAGE = os.getenv("LEXINE_MODEL_TRIAGE", "claude-sonnet-4-6")
 MODEL_RESEARCH = os.getenv("LEXINE_MODEL_RESEARCH", "claude-opus-4-8")
+# Recenzent ("inny chat") — niezależna weryfikacja merytoryczna + web_search.
+MODEL_REVIEW = os.getenv("LEXINE_MODEL_REVIEW", "claude-opus-4-8")
+MODEL_REVISE = os.getenv("LEXINE_MODEL_REVISE", "claude-opus-4-8")
+
+# Ile rund recenzja→v2 (1 = pojedyncza pętla v1→recenzja→v2).
+REVIEW_ROUNDS = int(os.getenv("LEXINE_REVIEW_ROUNDS", "1"))
 
 # Limity tokenów (artykuł 12–18 tys. znaków → streaming, duży zapas).
 MAX_TOKENS_GENERATE = 32000
 MAX_TOKENS_TRIAGE = 2000
 MAX_TOKENS_RESEARCH = 8000
+MAX_TOKENS_REVIEW = 8000
+MAX_TOKENS_REVISE = 32000
 
 # Próg jakości tematu (0–10) — poniżej akt nie trafia do produkcji.
 TRIAGE_THRESHOLD = 6.0
@@ -59,3 +67,14 @@ def load_services() -> dict[str, Service]:
 
 def read_prompt(filename: str) -> str:
     return (PROMPTS_DIR / filename).read_text(encoding="utf-8")
+
+
+def load_style_examples() -> str:
+    """Łączy artykuły wzorcowe — przekazywane modelowi jako referencja stylu/formatu."""
+    examples_dir = PROMPTS_DIR / "examples"
+    if not examples_dir.exists():
+        return ""
+    parts = []
+    for path in sorted(examples_dir.glob("*.html")):
+        parts.append(f"--- WZÓR: {path.name} ---\n{path.read_text(encoding='utf-8')}")
+    return "\n\n".join(parts)

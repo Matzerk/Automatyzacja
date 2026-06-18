@@ -10,32 +10,51 @@ Priorytet: skalowalność, **nadzór redakcyjny** i **brak halucynacji**. Pipeli
 ## Architektura
 
 ```
- Dz.U. (API ELI Sejmu)
+ Dz.U. (API ELI Sejmu)                          ← źródło (na razie; rozszerzalne)
         │  ingest.py
         ▼
    [ Akty ] ──► triage.py ──► ocena (kryteria 1–3) + routing do 1 z 19 serwisów
-        │                      (structured output, cache na rubryce)
         │  filtr jakości + kadencja (state.py)
         ▼
-   research.py ──► web_search: realne źródła + cytaty (anty-halucynacja)
+   research.py ──► web_search: realne źródła + cytaty
         ▼
-   generate.py ──► opus-4-8 + Twój system prompt (19 sekcji), streaming, cache
+   generate.py ──► v1 (opus-4-8, format jak artykuły wzorcowe, panel pipeline)
         ▼
-   verify.py ──► HTML  +  lista „DO WERYFIKACJI PRZEZ REDAKCJĘ"
+   review.py   ──► RECENZENT „inny chat" (opus-4-8 + web_search) → uwagi
         ▼
-   output/review_queue/<serwis>/<akt>.html (+ .json)   ← akceptacja redakcji
+   revise.py   ──► v2 (nanosi poprawki, aktualizuje panel: KOREKTA/OK)
+        ▼
+   publish.py  ──► wersja publikacyjna (panel usunięty, gotowe do CMS)
+        ▼
+   output/review_queue/<serwis>/<akt>.{v1,v2,publication}.html (+ .review.txt, .json)
 ```
+
+Przepływ odwzorowuje docelowy proces: **kilka źródeł → temat → artykuł podobny do
+istniejących → recenzja przez osobny model → wersja v2 → publikacja**. Krok grafiki
+(„zdjęcie") jest na razie pominięty (do dołożenia później jako brief do modelu graficznego).
 
 | Etap | Plik | Co robi |
 |------|------|---------|
-| Ingest | `ingest.py` | Pobiera akty z **api.sejm.gov.pl/eli** (Dz.U., darmowe, bez klucza) |
-| Triage + routing | `triage.py` | Jeden structured-output call: ocena 0–10 + serwis + kategoria + kąt |
+| Ingest | `ingest.py` | Akty z **api.sejm.gov.pl/eli** (Dz.U., darmowe, bez klucza) |
+| Triage + routing | `triage.py` | Structured output: ocena 0–10 + serwis + kategoria + kąt |
 | Research | `research.py` | `web_search` zbiera źródła i komentarze z atrybucją |
-| Generacja | `generate.py` | `claude-opus-4-8`, streaming, prompt caching na system prompcie |
-| Weryfikacja | `verify.py` | Rozdziela HTML od listy rzeczy do sprawdzenia przez redakcję |
+| Generacja v1 | `generate.py` | opus-4-8, format **identyczny z artykułami wzorcowymi** (cache) |
+| Recenzja | `review.py` | „Inny chat": opus-4-8 + web_search niezależnie weryfikuje fakty w ISAP |
+| Wersja v2 | `revise.py` | Nanosi uwagi recenzenta, aktualizuje panel pipeline |
+| Publikacja | `publish.py` | Usuwa panel recenzji → czysty HTML do CMS |
+| Weryfikacja | `verify.py` | Rozdziela HTML od listy „DO WERYFIKACJI"; zbiera placeholdery |
 | Kadencja/stan | `state.py` | Idempotencja + priorytet eporada24, rzadszy content niszowy |
 | Orkiestracja | `pipeline.py` | Spina całość; selekcja wg jakości i kadencji |
 | CLI | `cli.py` | `ingest` / `triage` / `run` |
+
+### Format docelowy
+
+`prompts/examples/*.html` to Twoje **artykuły wzorcowe** (preview v2 z panelem
+pipeline). Generator i reviser dostają je jako referencję, żeby nowe teksty miały
+identyczny `<style>`, układ sekcji, karty przykładów i bloki CTA
+(`../zapytaj_prawnika.html`). Panel pipeline (`TYTUL_H1`, `SEO_*`, `NANIESIONO PO
+RECENZJI`, `DO_WERYFIKACJI`) jest w wersjach v1/v2, a `publish.py` usuwa go w wersji
+publikacyjnej.
 
 ## Instalacja
 
@@ -62,13 +81,24 @@ python -m lexine.cli run --year 2026 --since 2026-05-01 --max 3
 python -m lexine.cli run --year 2026 --dry-run
 ```
 
-Drafty: `output/review_queue/<serwis>/<klucz>.html` + `<klucz>.json` (metadane,
-ocena, lista „do weryfikacji"). Status każdego: `DO_AKCEPTACJI_REDAKCJI`.
+Dla każdego tematu w `output/review_queue/<serwis>/` powstaje komplet:
+
+| Plik | Co to |
+|------|-------|
+| `<klucz>.v1.html` | Pierwsza wersja (przed recenzją) |
+| `<klucz>.v2.html` | Wersja po recenzji merytorycznej (z panelem KOREKTA/OK) |
+| `<klucz>.publication.html` | Czysty HTML do CMS (panel usunięty) |
+| `<klucz>.review.txt` | Surowe uwagi recenzenta (werdykt, korekty, źródła) |
+| `<klucz>.json` | Metadane: ocena, werdykt, korekty, lista „do weryfikacji" |
+
+Status każdego: `DO_AKCEPTACJI_REDAKCJI` — nic nie idzie do publikacji bez redakcji.
+
+Liczbę rund recenzja→v2 ustawia `LEXINE_REVIEW_ROUNDS` (domyślnie 1).
 
 ## Decyzje modelowe (ważne)
 
-- **Generacja: `claude-opus-4-8`** — najlepsza polszczyzna prawnicza, pilnuje
-  19-sekcyjnej struktury i zasad anty-halucynacyjnych. Treść YMYL → jakość > koszt.
+- **Generacja v1, recenzja, v2: `claude-opus-4-8`** — najlepsza polszczyzna
+  prawnicza, pilnuje formatu i zasad anty-halucynacyjnych. Treść YMYL → jakość > koszt.
 - **Triage: `claude-sonnet-4-6`** — tańszy, do masowej oceny/klasyfikacji. To
   świadomy kompromis koszt/wolumen; ustaw `LEXINE_MODEL_TRIAGE=claude-opus-4-8`
   jeśli chcesz maks. trafność.
@@ -80,13 +110,15 @@ ocena, lista „do weryfikacji"). Status każdego: `DO_AKCEPTACJI_REDAKCJI`.
 
 Modele nadpiszesz w `.env` (`LEXINE_MODEL_*`) lub `src/lexine/config.py`.
 
-## Jak pilnujemy braku halucynacji
+## Jak pilnujemy braku halucynacji (4 niezależne warstwy)
 
 1. **Grounding** — `research.py` najpierw wyszukuje realne źródła (`web_search`);
    model pisze z dostarczonego kontekstu, nie z pamięci.
-2. **Placeholdery** — czego nie ma w danych, model oznacza `{{DO_WERYFIKACJI: ...}}`.
-3. **Blok weryfikacji** — każdy draft kończy się listą dat/numerów/cytatów do
-   sprawdzenia; `verify.py` zbiera je do `.json`.
+2. **Niezależna recenzja** — `review.py` to OSOBNE wywołanie/rola (opus-4-8 +
+   web_search), które weryfikuje fakty w ISAP i zgłasza korekty (np. odwrócone
+   przepisy przejściowe). `revise.py` nanosi je w v2.
+3. **Placeholdery + blok weryfikacji** — czego nie potwierdzono, model oznacza
+   `{{DO_WERYFIKACJI: ...}}`; `verify.py` zbiera je do `.json`.
 4. **Human-in-the-loop** — pipeline nie publikuje; wszystko czeka na redakcję.
 
 ## Skalowanie i koszt

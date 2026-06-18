@@ -1,10 +1,13 @@
-"""Orkiestracja: ingest → triage → (cadence) → research → generate → verify → kolejka.
+"""Orkiestracja pełnego przepływu:
 
-Reguły:
-- idempotencja: akt raz przerobiony nie wraca (manifest),
-- jakość: tylko worth_writing i total_score >= TRIAGE_THRESHOLD,
-- priorytet eporada24 i rzadsza kadencja serwisów niszowych (cadence_days),
-- nic nie jest publikowane — drafty lądują w output/review_queue/<serwis>/ do akceptacji redakcji.
+  ingest (Dz.U.) → triage+routing → research → generacja v1
+  → recenzja (inny model + web_search) → wersja v2 → wersja publikacyjna (bez panelu)
+
+Reguły: idempotencja + jakość (próg) + kadencja per serwis (priorytet eporada24).
+Nic nie jest publikowane automatycznie — artefakty trafiają do kolejki redakcyjnej.
+
+Źródła: na razie wyłącznie Dziennik Ustaw (API ELI). Warstwa `ingest` jest celowo
+wydzielona, więc dołożenie kolejnych źródeł (web_search/RSS/RCL) nie ruszy reszty.
 """
 
 from __future__ import annotations
@@ -13,13 +16,16 @@ import json
 from dataclasses import dataclass, field
 
 from . import ingest
-from .config import OUTPUT_DIR, TRIAGE_THRESHOLD, load_services
+from .config import OUTPUT_DIR, REVIEW_ROUNDS, TRIAGE_THRESHOLD, load_services
 from .generate import generate_article
-from .models import Act, TriageResult
+from .models import Act, ReviewResult, TriageResult
+from .publish import strip_panel
 from .research import research_act
+from .review import review_article
+from .revise import revise_article
 from .state import Manifest
 from .triage import triage_act
-from .verify import VerifiedArticle, split_output
+from .verify import split_output
 
 REVIEW_QUEUE = OUTPUT_DIR / "review_queue"
 
@@ -40,13 +46,36 @@ class RunReport:
     drafts: list[dict] = field(default_factory=list)
 
 
-def _save_draft(act: Act, triage: TriageResult, article: VerifiedArticle) -> dict:
+def _produce(act: Act, triage: TriageResult) -> dict:
+    """Pełny cykl jednego artykułu: research → v1 → recenzja → v2 → publikacja."""
+    act_text = ingest.fetch_text(act)
+    brief = research_act(act, triage)
+
+    # v1
+    html_v1 = split_output(generate_article(act, triage, brief, act_text)).html
+
+    # recenzja → v2 (REVIEW_ROUNDS rund; domyślnie 1)
+    current_html = html_v1
+    review: ReviewResult | None = None
+    html_v2 = html_v1
+    for r in range(max(1, REVIEW_ROUNDS)):
+        review = review_article(act, current_html)
+        html_v2 = split_output(revise_article(act, triage, current_html, review)).html
+        if review.approved and not review.has_critical:
+            break
+        current_html = html_v2  # kolejna runda nanosi na świeższą wersję
+
+    publication = strip_panel(html_v2)
+    final = split_output(html_v2)  # placeholdery pozostałe w v2
+
     service_dir = REVIEW_QUEUE / triage.target_service
     service_dir.mkdir(parents=True, exist_ok=True)
-    html_path = service_dir / f"{act.key}.html"
-    meta_path = service_dir / f"{act.key}.json"
+    (service_dir / f"{act.key}.v1.html").write_text(html_v1, encoding="utf-8")
+    (service_dir / f"{act.key}.v2.html").write_text(html_v2, encoding="utf-8")
+    (service_dir / f"{act.key}.publication.html").write_text(publication, encoding="utf-8")
+    if review:
+        (service_dir / f"{act.key}.review.txt").write_text(review.raw, encoding="utf-8")
 
-    html_path.write_text(article.html, encoding="utf-8")
     meta = {
         "act_key": act.key,
         "display": act.display,
@@ -56,13 +85,21 @@ def _save_draft(act: Act, triage: TriageResult, article: VerifiedArticle) -> dic
         "angle": triage.angle,
         "score": triage.total_score,
         "entry_into_force": act.entry_into_force,
-        "needs_review_count": article.needs_review_count,
-        "review_block": article.review_block,
-        "placeholders": article.placeholders,
+        "review_verdict": review.verdict if review else None,
+        "corrections": review.corrections if review else [],
+        "to_verify": (review.to_verify if review else []) + final.placeholders,
+        "placeholders_left": final.placeholders,
         "status": "DO_AKCEPTACJI_REDAKCJI",
-        "html_file": html_path.name,
+        "files": {
+            "v1": f"{act.key}.v1.html",
+            "v2": f"{act.key}.v2.html",
+            "publication": f"{act.key}.publication.html",
+            "review": f"{act.key}.review.txt",
+        },
     }
-    meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+    (service_dir / f"{act.key}.json").write_text(
+        json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     return meta
 
 
@@ -82,7 +119,7 @@ def run(
     acts = ingest.list_acts(year, since=since, limit=scan_limit)
     report.scanned = len(acts)
 
-    # 1) Triage wszystkich świeżych aktów.
+    # 1) Triage + routing każdego świeżego aktu.
     candidates: list[Candidate] = []
     for act in acts:
         if manifest.is_processed(act.key):
@@ -110,7 +147,6 @@ def run(
         if produced >= max_articles:
             break
         svc = services[cand.triage.target_service]
-        # W jednym przebiegu max 1 draft na serwis + globalna kadencja z manifestu.
         if cand.triage.target_service in used_services or not manifest.cadence_ok(
             svc.name, svc.cadence_days
         ):
@@ -122,19 +158,11 @@ def run(
             report.drafts.append(
                 {"act_key": cand.act.key, "service": svc.name, "score": cand.triage.total_score}
             )
-            used_services.add(svc.name)
-            produced += 1
-            continue
+        else:
+            report.drafts.append(_produce(cand.act, cand.triage))
+            manifest.record_publish(svc.name)
 
-        act_text = ingest.fetch_text(cand.act)
-        brief = research_act(cand.act, cand.triage)
-        raw = generate_article(cand.act, cand.triage, brief, act_text)
-        article = split_output(raw)
-        meta = _save_draft(cand.act, cand.triage, article)
-
-        manifest.record_publish(svc.name)
         used_services.add(svc.name)
-        report.drafts.append(meta)
         produced += 1
 
     if not dry_run:

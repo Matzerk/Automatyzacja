@@ -48,6 +48,25 @@ class TriageResult(BaseModel):
     rationale: str = Field(description="2–3 zdania uzasadnienia")
 
 
+class ReviewResult(BaseModel):
+    """Wynik recenzji merytorycznej ('inny chat')."""
+
+    verdict: str = "WYMAGA_POPRAWEK"  # APPROVED | WYMAGA_POPRAWEK
+    corrections: list[str] = Field(default_factory=list)
+    to_verify: list[str] = Field(default_factory=list)
+    style_notes: list[str] = Field(default_factory=list)
+    sources: list[str] = Field(default_factory=list)
+    raw: str = ""
+
+    @property
+    def approved(self) -> bool:
+        return self.verdict.strip().upper().startswith("APPROVED")
+
+    @property
+    def has_critical(self) -> bool:
+        return any("KRYTYCZNA" in c.upper() for c in self.corrections)
+
+
 class ResearchBrief(BaseModel):
     """Zebrany kontekst pod generację (z web_search, z atrybucją źródeł)."""
 

@@ -62,10 +62,18 @@ def _cmd_run(args) -> None:
         else:
             print(
                 f"    - {d['act_key']} → {d['service']}  "
-                f"[do weryfikacji: {d['needs_review_count']}]  {d['html_file']}"
+                f"[recenzja: {d['review_verdict']}, korekt: {len(d['corrections'])}, "
+                f"do weryfikacji: {len(d['to_verify'])}]"
+            )
+            print(
+                f"        v1/v2/publikacja + recenzja: "
+                f"output/review_queue/{d['service']}/{d['act_key']}.*"
             )
     if not args.dry_run and report.drafts:
-        print(f"\n  Lokalizacja: output/review_queue/<serwis>/  — wymagają akceptacji redakcji.")
+        print(
+            "\n  Każdy temat: .v1.html → .v2.html (po recenzji) → .publication.html "
+            "(bez panelu, do CMS). Wymaga akceptacji redakcji."
+        )
 
 
 def main() -> None:
