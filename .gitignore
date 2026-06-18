@@ -1,0 +1,25 @@
+# Sekrety i środowisko
+.env
+.env.local
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Dane wyjściowe pipeline'u (drafty, stan)
+output/
+!output/.gitkeep
+state/
+!state/.gitkeep
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store

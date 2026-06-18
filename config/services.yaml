@@ -1,0 +1,121 @@
+# Katalog 19 serwisów sieci Lexine.
+# tier:        1 = flagowy (eporada24), 2 = duży niszowy, 3 = mały niszowy
+# cadence_days: minimalna liczba dni między kolejnymi artykułami na tym serwisie
+#               (eporada24 najczęściej, serwisy niszowe rzadziej)
+# domains:     hasła dziedzinowe pomocne przy routingu / ocenie dopasowania
+# category:    domyślna kategoria w breadcrumbs
+
+services:
+  eporada24.pl:
+    tier: 1
+    cadence_days: 2
+    category: "Aktualności prawne"
+    domains: [ogólne, prawo, konsument, urząd, obywatel, wszystkie dziedziny]
+
+  prawo-pracy.pl:
+    tier: 2
+    cadence_days: 7
+    category: "Prawo pracy"
+    domains: [prawo pracy, kodeks pracy, wynagrodzenie, urlop, zwolnienie, BHP, umowa o pracę]
+
+  poradapodatkowa.pl:
+    tier: 2
+    cadence_days: 7
+    category: "Prawo podatkowe"
+    domains: [podatki, PIT, CIT, VAT, ordynacja podatkowa, KSeF, podatek Belki, fiskus]
+
+  prawozus.pl:
+    tier: 2
+    cadence_days: 10
+    category: "ZUS i ubezpieczenia"
+    domains: [ZUS, składki, emerytura, renta, zasiłek, ubezpieczenia społeczne]
+
+  spadek.info:
+    tier: 2
+    cadence_days: 14
+    category: "Prawo spadkowe"
+    domains: [spadek, dziedziczenie, testament, zachowek, spadkobierca]
+
+  porady-spadkowe.pl:
+    tier: 3
+    cadence_days: 21
+    category: "Porady spadkowe"
+    domains: [spadek, dziedziczenie, dział spadku, odrzucenie spadku]
+
+  prawo-budowlane.info:
+    tier: 2
+    cadence_days: 10
+    category: "Prawo budowlane"
+    domains: [prawo budowlane, pozwolenie na budowę, nadzór budowlany, inwestycja, MDR]
+
+  rozwodowy.pl:
+    tier: 2
+    cadence_days: 14
+    category: "Rozwód i prawo rodzinne"
+    domains: [rozwód, separacja, prawo rodzinne, małżeństwo, podział majątku]
+
+  pozew-o-alimenty.pl:
+    tier: 3
+    cadence_days: 21
+    category: "Alimenty"
+    domains: [alimenty, pozew alimentacyjny, świadczenie, dzieci, rodzina]
+
+  prawo-cywilne.info:
+    tier: 2
+    cadence_days: 10
+    category: "Prawo cywilne"
+    domains: [prawo cywilne, kodeks cywilny, KC, umowa, zobowiązania, odszkodowanie]
+
+  sluzebnosc.info:
+    tier: 3
+    cadence_days: 30
+    category: "Służebności"
+    domains: [służebność, służebność przesyłu, droga konieczna, nieruchomość]
+
+  prawo-mieszkaniowe.info:
+    tier: 2
+    cadence_days: 14
+    category: "Prawo mieszkaniowe"
+    domains: [najem, lokal, mieszkanie, wspólnota mieszkaniowa, spółdzielnia, lokator]
+
+  wlasnosciposiadanie.pl:
+    tier: 3
+    cadence_days: 30
+    category: "Własność i posiadanie"
+    domains: [własność, posiadanie, zasiedzenie, nieruchomość, księgi wieczyste]
+
+  spolkowy.pl:
+    tier: 2
+    cadence_days: 14
+    category: "Prawo spółek"
+    domains: [spółka, KSH, KRS, działalność gospodarcza, przedsiębiorca, zarząd]
+
+  prawo-karne.info:
+    tier: 2
+    cadence_days: 10
+    category: "Prawo karne"
+    domains: [prawo karne, KK, KPK, przestępstwo, kara, wykroczenie, postępowanie karne]
+
+  praworolne.info:
+    tier: 3
+    cadence_days: 21
+    category: "Prawo rolne"
+    domains: [prawo rolne, rolnik, ziemia rolna, KOWR, dopłaty, gospodarstwo]
+
+  odpowiedziprawne.pl:
+    tier: 3
+    cadence_days: 21
+    category: "Odpowiedzi prawne"
+    domains: [ogólne pytania prawne, porady, różne dziedziny]
+
+  prawozolnierzy.pl:
+    tier: 3
+    cadence_days: 30
+    category: "Prawo żołnierzy"
+    domains: [wojsko, żołnierz, służba wojskowa, obrona, mundurowi]
+
+  analizaumowy.pl:
+    tier: 3
+    cadence_days: 30
+    category: "Analiza umów"
+    domains: [umowa, analiza umowy, klauzule, zobowiązania, kontrakt]

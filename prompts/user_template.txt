@@ -1,0 +1,29 @@
+DANE WEJŚCIOWE DO ARTYKUŁU:
+
+== Akt prawny ==
+Pozycja Dz.U.: {rok} poz. {numer}
+Pełny tytuł aktu: {tytul}
+Data ogłoszenia: {data_ogloszenia}
+Data wejścia w życie: {data_wejscia}
+
+== Routing ==
+Serwis docelowy: {serwis}
+Kategoria w breadcrumbs: {kategoria}
+Sugerowany kąt artykułu: {kat}
+
+== Treść aktu (lub kluczowe fragmenty) ==
+{tresc_aktu}
+
+== Kontekst — co zmienia (jeśli to nowelizacja) ==
+{kontekst_zmiany}
+
+== Komentarze eksperckie (z atrybucją: autor, portal, data) ==
+{komentarze}
+
+== Uzasadnienie projektu (jeśli dostępne) ==
+{uzasadnienie}
+
+== Dodatkowe ==
+Powiązane artykuły kodeksów (KK, KPK, KC, KP itd.) do podlinkowania w treści: {powiazane}
+
+ZADANIE: Napisz kompletny artykuł HTML wg 19-sekcyjnej struktury z systemu, plus blok „DO WERYFIKACJI PRZEZ REDAKCJĘ" na końcu. Każdą informację, której nie ma w danych wejściowych powyżej, oznacz placeholderem {{DO_WERYFIKACJI: ...}} — nie zgaduj dat, numerów ani cytatów.
