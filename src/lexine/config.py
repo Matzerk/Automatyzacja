@@ -56,6 +56,11 @@ MIN_LAYPERSON_INTEREST = int(os.getenv("LEXINE_MIN_LAYPERSON", "2"))
 # Ile razy ponawiać akt zakończony błędem, zanim go odpuścimy.
 MAX_RETRIES = int(os.getenv("LEXINE_MAX_RETRIES", "2"))
 
+# Sztywny format ilustracji głównej (px) — używany w briefie graficznym
+# i docelowo w kroku generacji obrazu.
+IMAGE_WIDTH = int(os.getenv("LEXINE_IMAGE_WIDTH", "2048"))
+IMAGE_HEIGHT = int(os.getenv("LEXINE_IMAGE_HEIGHT", "1054"))
+
 # Oficjalne API Dziennika Ustaw (ELI, Sejm RP) — darmowe, bez klucza.
 ELI_BASE = "https://api.sejm.gov.pl/eli"
 

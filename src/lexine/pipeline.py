@@ -21,6 +21,8 @@ from dataclasses import dataclass, field
 from . import ingest
 from .config import (
     FRESHNESS_DAYS,
+    IMAGE_HEIGHT,
+    IMAGE_WIDTH,
     MAX_RETRIES,
     MIN_LAYPERSON_INTEREST,
     OUTPUT_DIR,
@@ -122,6 +124,7 @@ def _produce(act: Act, triage: TriageResult) -> dict:
         + ([] if graphic_brief else ["Brak briefu graficznego — dorobić ręcznie."]),
         "placeholders_left": final.placeholders,
         "has_graphic_brief": bool(graphic_brief),
+        "graphic_size": f"{IMAGE_WIDTH}x{IMAGE_HEIGHT}",
         "status": "DO_AKCEPTACJI_REDAKCJI",
         "files": {
             "v1": f"{act.key}.v1.html",
