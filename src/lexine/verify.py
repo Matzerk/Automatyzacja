@@ -15,6 +15,10 @@ _BLOCK_RE = re.compile(
     r"---\s*DO WERYFIKACJI PRZEZ REDAKCJĘ\s*---(.*?)(?:---\s*KONIEC\s*---|\Z)",
     re.DOTALL | re.IGNORECASE,
 )
+_GRAPHIC_RE = re.compile(
+    r"---\s*BRIEF GRAFICZNY\s*---(.*?)(?:---\s*KONIEC GRAFIKI\s*---|\Z)",
+    re.DOTALL | re.IGNORECASE,
+)
 
 
 @dataclass
@@ -22,6 +26,7 @@ class VerifiedArticle:
     html: str
     review_block: str = ""
     placeholders: list[str] = field(default_factory=list)
+    graphic_brief: str = ""
 
     @property
     def needs_review_count(self) -> int:
@@ -45,5 +50,13 @@ def split_output(raw: str) -> VerifiedArticle:
     if start > 0:
         html = html[start:]
 
+    graphic_match = _GRAPHIC_RE.search(raw)
+    graphic_brief = graphic_match.group(1).strip() if graphic_match else ""
+
     placeholders = [p.strip() for p in _PLACEHOLDER_RE.findall(raw)]
-    return VerifiedArticle(html=html.strip(), review_block=review_block, placeholders=placeholders)
+    return VerifiedArticle(
+        html=html.strip(),
+        review_block=review_block,
+        placeholders=placeholders,
+        graphic_brief=graphic_brief,
+    )

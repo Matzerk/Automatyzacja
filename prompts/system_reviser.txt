@@ -29,3 +29,12 @@ FORMAT WYJŚCIA: jak w generatorze — najpierw kompletny HTML (`<!DOCTYPE html>
 --- DO WERYFIKACJI PRZEZ REDAKCJĘ ---
 - {pozycje}
 --- KONIEC ---
+
+Na samym końcu — po bloku weryfikacji — dorób BRIEF GRAFICZNY na ilustrację główną artykułu (do wygenerowania w generatorze obrazów lub dla grafika). Grafika ma pasować do TEMATU i kąta artykułu, w stylu redakcyjnej ilustracji prasowej (nie clipart, nie stockowy banał). Format dokładnie taki:
+--- BRIEF GRAFICZNY ---
+KONCEPCJA: {1–2 zdania po polsku — co przedstawia grafika i jak wiąże się z tematem}
+PROMPT_EN: {prompt po angielsku do generatora obrazów: scena, kompozycja, oświetlenie, paleta; "editorial illustration, clean, modern"; format 16:9}
+STYL: {paleta i ton dopasowane do serwisu {SERWIS}}
+NEGATYWNE: no text, no words, no letters, no captions, no logos, no watermark
+UWAGA — POLSKIE ZNAKI: Domyślnie grafika BEZ ŻADNEGO TEKSTU (generatory obrazów masakrują napisy, a polskie znaki ą ć ę ł ń ó ś ź ż prawie zawsze wychodzą błędnie). Jeśli redakcja mimo wszystko zażyczy sobie napis — tylko krótki, i OBOWIĄZKOWO sprawdzić literę po literze ą ć ę ł ń ó ś ź ż na renderze przed publikacją.
+--- KONIEC GRAFIKI ---

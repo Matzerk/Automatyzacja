@@ -26,12 +26,16 @@ Priorytet: skalowalność, **nadzór redakcyjny** i **brak halucynacji**. Pipeli
         ▼
    publish.py  ──► wersja publikacyjna (panel usunięty, gotowe do CMS)
         ▼
-   output/review_queue/<serwis>/<akt>.{v1,v2,publication}.html (+ .review.txt, .json)
+   output/review_queue/<serwis>/<akt>.{v1,v2,publication}.html (+ .review.txt, .grafika.txt, .json)
 ```
 
 Przepływ odwzorowuje docelowy proces: **kilka źródeł → temat → artykuł podobny do
-istniejących → recenzja przez osobny model → wersja v2 → publikacja**. Krok grafiki
-(„zdjęcie") jest na razie pominięty (do dołożenia później jako brief do modelu graficznego).
+istniejących → recenzja przez osobny model → wersja v2 + brief graficzny → publikacja**.
+Brief graficzny powstaje w tym samym kroku co naniesienie poprawek (revise): model
+dorabia koncepcję ilustracji pasującą do tematu + gotowy `PROMPT_EN` do generatora
+obrazów. **Mocne ostrzeżenie o polskich znakach** (ą ć ę ł ń ó ś ź ż) — domyślnie
+grafika bez tekstu, bo generatory masakrują napisy z diakrytykami. Sama generacja
+obrazu/integracja z modelem graficznym to kolejny krok; brief ląduje w `.grafika.txt`.
 
 | Etap | Plik | Co robi |
 |------|------|---------|

@@ -83,16 +83,18 @@ def _produce(act: Act, triage: TriageResult) -> dict:
 
     current_html = html_v1
     review: ReviewResult | None = None
-    html_v2 = html_v1
+    # revise zwraca v2 RAZEM z briefem graficznym (ten sam krok co poprawki)
+    final = split_output(html_v1)
     for _ in range(max(1, REVIEW_ROUNDS)):
         review = review_article(act, current_html)
-        html_v2 = split_output(revise_article(act, triage, current_html, review)).html
+        final = split_output(revise_article(act, triage, current_html, review))
         if review.approved and not review.has_critical:
             break
-        current_html = html_v2
+        current_html = final.html
 
+    html_v2 = final.html
     publication = strip_panel(html_v2)
-    final = split_output(html_v2)
+    graphic_brief = final.graphic_brief
 
     service_dir = REVIEW_QUEUE / triage.target_service
     service_dir.mkdir(parents=True, exist_ok=True)
@@ -101,6 +103,8 @@ def _produce(act: Act, triage: TriageResult) -> dict:
     (service_dir / f"{act.key}.publication.html").write_text(publication, encoding="utf-8")
     if review:
         (service_dir / f"{act.key}.review.txt").write_text(review.raw, encoding="utf-8")
+    if graphic_brief:
+        (service_dir / f"{act.key}.grafika.txt").write_text(graphic_brief, encoding="utf-8")
 
     meta = {
         "act_key": act.key,
@@ -113,14 +117,18 @@ def _produce(act: Act, triage: TriageResult) -> dict:
         "entry_into_force": act.entry_into_force,
         "review_verdict": review.verdict if review else None,
         "corrections": review.corrections if review else [],
-        "to_verify": (review.to_verify if review else []) + final.placeholders,
+        "to_verify": (review.to_verify if review else [])
+        + final.placeholders
+        + ([] if graphic_brief else ["Brak briefu graficznego — dorobić ręcznie."]),
         "placeholders_left": final.placeholders,
+        "has_graphic_brief": bool(graphic_brief),
         "status": "DO_AKCEPTACJI_REDAKCJI",
         "files": {
             "v1": f"{act.key}.v1.html",
             "v2": f"{act.key}.v2.html",
             "publication": f"{act.key}.publication.html",
             "review": f"{act.key}.review.txt",
+            "grafika": f"{act.key}.grafika.txt" if graphic_brief else None,
         },
     }
     (service_dir / f"{act.key}.json").write_text(
