@@ -1,3 +1,2 @@
-# Realna konfiguracja z kluczami Supabase — nie commitujemy.
-# (klucz anon jest publiczny, ale lepiej trzymać go poza repo)
-config.js
+# config.js jest commitowany celowo — klucz anon Supabase jest publiczny
+# (bezpieczeństwa pilnuje RLS w bazie), a GitHub Pages potrzebuje go w repo.
