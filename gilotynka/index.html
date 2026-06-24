@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="pl" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gilotynka 🪓</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0E0F0F;--bg2:#161818;--bg3:#1D1F1F;--bd:#2A2D2D;--bd2:#363A3A;--tx:#E8E4DC;--mu:#6B7070;--ac:#D4A853;--ok:#3DAA6E;--wn:#D45B3D;--okd:rgba(61,170,110,.12);--wnd:rgba(212,91,61,.12);--sh:0 2px 16px rgba(0,0,0,.5);--bl:#5B9BD4}
+[data-theme="light"]{--bg:#F2F0EB;--bg2:#fff;--bg3:#F7F5F0;--bd:#D8D3C8;--bd2:#C5BFB2;--tx:#1C1A17;--mu:#7A7469;--ac:#B8862A;--ok:#2A8A52;--wn:#B84020;--okd:rgba(42,138,82,.10);--wnd:rgba(184,64,32,.10);--sh:0 2px 12px rgba(0,0,0,.10);--bl:#2A6BA0}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tx);min-height:100vh}
+.hdr{position:sticky;top:0;z-index:99;box-shadow:var(--sh)}
+.topbar{background:var(--bg2);border-bottom:2px solid var(--bd);padding:8px 20px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.logo-area{display:flex;align-items:center;gap:10px}
+.logo-icon{font-size:28px;line-height:1;transform:rotate(-15deg);display:inline-block;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4))}
+.logo-text{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;letter-spacing:-0.5px}
+.logo-text .t1{color:var(--ac)}
+.logo-text .t2{color:var(--tx)}
+.logo-sub{font-size:9px;color:var(--mu);letter-spacing:1px;text-transform:uppercase;margin-top:1px}
+.tabs{background:var(--bg2);border-bottom:1px solid var(--bd);display:flex;padding:0 20px;overflow-x:auto}
+.tab{padding:10px 16px;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--mu);cursor:pointer;border-bottom:3px solid transparent;display:flex;align-items:center;gap:6px;transition:all .15s;white-space:nowrap;user-select:none;flex-shrink:0}
+.tab:hover{color:var(--tx)}.tab.on{color:var(--ac);border-bottom-color:var(--ac)}
+.rbadge{border-radius:8px;padding:1px 6px;font-size:9px;font-weight:700;color:#fff}
+.pg{padding:16px 20px;max-width:1100px;margin:0 auto}
+.view{display:none}.view.on{display:block}
+.sec{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--mu);margin:18px 0 9px;padding-bottom:6px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px}
+.sec:first-child{margin-top:0}
+.sec::before{content:'';width:4px;height:4px;background:var(--ac);border-radius:50%;flex-shrink:0}
+.sbadge{background:var(--bg3);border:1px solid var(--bd2);border-radius:9px;padding:1px 8px;font-size:9px;color:var(--mu);margin-left:auto}
+.btn{background:var(--bg3);border:1px solid var(--bd2);color:var(--mu);padding:6px 12px;border-radius:6px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;transition:all .15s;white-space:nowrap}
+.btn:hover{border-color:var(--ac);color:var(--ac)}
+.btn.ok{border-color:var(--ok);color:var(--ok)}.btn.ok:hover{background:var(--ok);color:#fff}
+.btn.wn{border-color:var(--wn);color:var(--wn)}.btn.wn:hover{background:var(--wn);color:#fff}
+.btn.bl{border-color:var(--bl);color:var(--bl)}.btn.bl:hover{background:var(--bl);color:#fff}
+.btn.sm{padding:4px 9px;font-size:10px}
+.btn.big{padding:11px 22px;font-size:13px;font-family:'Syne',sans-serif;font-weight:800}
+.btn:disabled{opacity:.35;cursor:default;pointer-events:none}
+.tbl{background:var(--bg2);border:1px solid var(--bd);border-radius:8px;overflow:hidden;margin-bottom:12px}
+.t{width:100%;border-collapse:collapse;font-size:11px}
+.t th{color:var(--mu);font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:6px 10px;text-align:left;border-bottom:1px solid var(--bd);font-weight:600}
+.t td{padding:8px 10px;border-bottom:1px dashed var(--bd);vertical-align:middle}
+.t tr:last-child td{border:none}.t tr:hover td{background:rgba(255,255,255,.015)}
+.ibtn{background:none;border:1px solid var(--bd2);color:var(--mu);width:27px;height:27px;border-radius:5px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:11px;transition:all .12s}
+.ibtn:hover{border-color:var(--wn);color:var(--wn)}.ibtn.e:hover{border-color:var(--ac);color:var(--ac)}.ibtn.g:hover{border-color:var(--ok);color:var(--ok)}
+.aform{background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:14px;margin-bottom:12px}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ff{display:flex;flex-direction:column;gap:4px}.ff.s2{grid-column:1/-1}
+.fl{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mu)}
+.fi,.fsel,.fta{background:var(--bg3);border:1px solid var(--bd2);color:var(--tx);padding:7px 9px;border-radius:5px;font-family:'JetBrains Mono',monospace;font-size:12px;width:100%}
+.fi:focus,.fsel:focus,.fta:focus{outline:none;border-color:var(--ac)}
+.fsel option{background:var(--bg3)}.fta{resize:vertical;min-height:46px}
+.seg{display:flex;gap:4px;flex-wrap:wrap}
+.sbtn{background:var(--bg3);border:1px solid var(--bd2);color:var(--mu);padding:4px 10px;border-radius:4px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;transition:all .12s}
+.sbtn:hover{border-color:var(--ac);color:var(--ac)}.sbtn.on{background:var(--ac);border-color:var(--ac);color:#000}.sbtn.on2{background:var(--ok);border-color:var(--ok);color:#fff}
+.b{font-size:9px;font-weight:600;padding:2px 7px;border-radius:8px;border:1px solid;text-transform:uppercase;white-space:nowrap}
+.b-dc{border-color:rgba(212,168,83,.5);color:var(--ac);background:rgba(212,168,83,.1)}
+.b-on{border-color:var(--bd2);color:var(--mu)}
+.b-cy{border-color:rgba(91,155,212,.4);color:var(--bl);background:rgba(91,155,212,.08)}
+.b-p1{border-color:rgba(61,170,110,.4);color:var(--ok)}
+.b-p2{border-color:rgba(91,155,212,.4);color:var(--bl)}
+.b-p3,.b-p4{border-color:var(--bd2);color:var(--mu)}
+.st-wait{border-color:rgba(107,112,112,.4);color:var(--mu);background:rgba(107,112,112,.08)}
+.st-prog{border-color:rgba(91,155,212,.5);color:var(--bl);background:rgba(91,155,212,.1)}
+.st-done{border-color:rgba(61,170,110,.4);color:var(--ok);background:var(--okd)}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;display:inline-block}
+/* Moje zadania cards */
+.task-card{background:var(--bg2);border:1px solid var(--bd);border-radius:6px;padding:5px 10px;margin-bottom:3px;display:flex;align-items:center;gap:8px;transition:border-color .15s;overflow:hidden}
+.task-card:hover{border-color:var(--bd2)}
+.task-card.done-card-dc{opacity:.55;border-style:dashed}
+.task-card-name{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
+.task-card-sub{font-size:10px;color:var(--mu);margin-top:1px}
+/* Done cards */
+.done-entry{background:var(--bg2);border:1px solid var(--bd);border-radius:7px;padding:10px 14px;margin-bottom:5px;display:flex;align-items:center;gap:10px}
+.empty{padding:28px;text-align:center;color:var(--mu);font-size:12px}
+.ei{font-size:28px;margin-bottom:8px}
+/* Modals */
+.mbg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:center;justify-content:center;padding:14px}
+.mbg.h{display:none}
+.modal{background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;padding:18px;max-width:460px;width:100%;box-shadow:var(--sh);max-height:90vh;overflow-y:auto}
+.modal h2{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--ac);margin-bottom:14px}
+.mbns{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.h{display:none!important}
+/* Login */
+.login-bg{position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;align-items:center;justify-content:center;padding:16px}
+.login-card{background:var(--bg2);border:1px solid var(--bd2);border-radius:12px;padding:26px;max-width:360px;width:100%;box-shadow:var(--sh)}
+.login-card .logo-area{justify-content:center;margin-bottom:6px}
+.login-sub{text-align:center;font-size:10px;color:var(--mu);margin-bottom:18px}
+.login-err{font-size:11px;color:var(--wn);min-height:16px;margin-top:8px;text-align:center}
+.whoami{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--mu)}
+.role-pill{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:2px 7px;border-radius:8px;border:1px solid var(--bd2)}
+.role-pill.sup{color:var(--ac);border-color:rgba(212,168,83,.5)}
+.role-pill.wrk{color:var(--bl);border-color:rgba(91,155,212,.5)}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:3px}
+@media(max-width:650px){.pg{padding:10px 12px}.topbar,.tabs{padding-left:12px;padding-right:12px}.fg{grid-template-columns:1fr}.ff.s2{grid-column:1}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-bg" id="login">
+  <div class="login-card">
+    <div class="logo-area">
+      <span class="logo-icon">🪓</span>
+      <div>
+        <div class="logo-text"><span class="t1">Gilo</span><span class="t2">tynka</span></div>
+        <div class="logo-sub">bo życie samo się nie poukłada</div>
+      </div>
+    </div>
+    <div class="login-sub">Zaloguj się, aby kontynuować</div>
+    <div class="fg" style="grid-template-columns:1fr">
+      <div class="ff s2"><div class="fl">E-mail</div>
+        <input class="fi" id="lg-email" type="email" autocomplete="username" placeholder="ty@example.com">
+      </div>
+      <div class="ff s2"><div class="fl">Hasło</div>
+        <input class="fi" id="lg-pass" type="password" autocomplete="current-password" placeholder="••••••••">
+      </div>
+    </div>
+    <div class="login-err" id="lg-err"></div>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button class="btn ok big" style="flex:1" id="lg-btn" onclick="doLogin()">Zaloguj</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="h" id="app">
+<div class="hdr">
+  <div class="topbar">
+    <div class="logo-area">
+      <span class="logo-icon">🪓</span>
+      <div>
+        <div class="logo-text"><span class="t1">Gilo</span><span class="t2">tynka</span></div>
+        <div class="logo-sub">bo życie samo się nie poukłada</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <span id="gs-status" style="font-size:10px;color:var(--mu)"></span>
+      <div class="whoami"><span id="me-name"></span><span class="role-pill" id="me-role"></span></div>
+      <button class="btn sm" id="thBtn" onclick="toggleTheme()">🌙</button>
+      <button class="btn sm wn" onclick="doLogout()" title="Wyloguj">Wyloguj</button>
+    </div>
+  </div>
+  <div class="tabs">
+    <div class="tab" id="tab-m" onclick="go('m')">🧒 Moje zadania <span class="rbadge h" id="badge-m" style="background:var(--bl)">0</span></div>
+    <div class="tab on" id="tab-a" onclick="go('a')">📋 Zadania</div>
+    <div class="tab" id="tab-u" onclick="go('u')">✅ Ukończono <span class="rbadge h" id="badge-u" style="background:var(--ok)">0</span></div>
+  </div>
+</div>
+
+<div class="pg">
+
+<!-- TAB 1: MOJE ZADANIA -->
+<div class="view" id="v-m">
+  <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:11px 14px;margin-bottom:14px;display:flex;align-items:center;gap:12px">
+    <div>
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:var(--bl)">Moje zadania na dziś</div>
+      <div style="font-size:10px;color:var(--mu)">Zadania do zrobienia — kliknij ✓ Ukończono gdy skończysz</div>
+    </div>
+    <span style="margin-left:auto;font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:var(--bl)" id="m-count">0</span>
+  </div>
+  <div id="m-list"></div>
+</div>
+
+<!-- TAB 2: ZADANIA -->
+<div class="view on" id="v-a">
+  <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:11px 14px;margin-bottom:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <div>
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:var(--ac)">Wszystkie zlecenia</div>
+      <div style="font-size:10px;color:var(--mu)">Tworzenie i zarządzanie zleceniami</div>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+      <span style="font-size:11px;color:var(--mu)">Łącznie:</span>
+      <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:var(--ac)" id="a-total">0</span>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+    <button class="btn ok" onclick="toggleForm()" id="form-toggle-btn">＋ Dodaj zlecenie</button>
+    <span style="font-size:10px;color:var(--mu)" id="form-toggle-hint">kliknij aby rozwinąć formularz</span>
+  </div>
+
+  <div id="add-form-wrap" class="h">
+  <div class="aform" style="margin-bottom:10px">
+    <div class="fg">
+      <div class="ff s2"><div class="fl">Nazwa zadania *</div>
+        <input class="fi" id="a-nw-n" placeholder="Opis zadania..." autocomplete="off">
+      </div>
+      <div class="ff"><div class="fl">Priorytet</div>
+        <div class="seg" id="a-nw-p-seg">
+          <button class="sbtn on" data-v="1" onclick="nwSeg('p',this)">1 Wysoki</button>
+          <button class="sbtn" data-v="2" onclick="nwSeg('p',this)">2 Średni</button>
+          <button class="sbtn" data-v="3" onclick="nwSeg('p',this)">3 Niski</button>
+          <button class="sbtn" data-v="4" onclick="nwSeg('p',this)">4 Kiedyś</button>
+        </div>
+      </div>
+      <div class="ff"><div class="fl">Typ</div>
+        <div class="seg" id="a-nw-t-seg">
+          <button class="sbtn on2 on" data-v="once" onclick="nwSeg('t',this)">Jednorazowe</button>
+          <button class="sbtn" data-v="dc" onclick="nwSeg('t',this)">✅ Codzienne</button>
+          <button class="sbtn" data-v="cyc" onclick="nwSeg('t',this)">🔄 Cykliczne</button>
+        </div>
+      </div>
+      <div class="ff s2"><div class="fl">Notatka (opcjonalna)</div>
+        <textarea class="fta" id="a-nw-note" placeholder="Dodatkowe informacje..." style="min-height:38px"></textarea>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn ok" onclick="addTask()">＋ Dodaj</button>
+      <button class="btn" onclick="clearForm()">✕ Wyczyść</button>
+      <button class="btn" onclick="toggleForm()" style="margin-left:auto">▲ Zwiń</button>
+    </div>
+  </div>
+  </div>
+
+  <!-- FILTER / SORT -->
+  <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:12px 14px;margin-bottom:12px;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+    <div style="display:flex;align-items:center;gap:6px">
+      <span style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mu)">Sortuj</span>
+      <div class="seg" id="a-sort-seg">
+        <button class="sbtn on" data-v="prio" onclick="aSort(this)">Priorytet</button>
+        <button class="sbtn" data-v="type" onclick="aSort(this)">Typ</button>
+        <button class="sbtn" data-v="name" onclick="aSort(this)">Nazwa</button>
+        <button class="sbtn" data-v="who" onclick="aSort(this)">Kto</button>
+        <button class="sbtn" data-v="status" onclick="aSort(this)">Status</button>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <span style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mu)">Typ</span>
+      <div class="seg" id="a-ftype-seg">
+        <button class="sbtn on" data-v="all" onclick="aFilter('type',this)">Wszystkie</button>
+        <button class="sbtn" data-v="dc" onclick="aFilter('type',this)">✅ Codzienne</button>
+        <button class="sbtn" data-v="once" onclick="aFilter('type',this)">Jednorazowe</button>
+        <button class="sbtn" data-v="cyc" onclick="aFilter('type',this)">🔄 Cykliczne</button>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <span style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mu)">Prio</span>
+      <div class="seg" id="a-fprio-seg">
+        <button class="sbtn on" data-v="all" onclick="aFilter('prio',this)">Wszystkie</button>
+        <button class="sbtn" data-v="dc" onclick="aFilter('prio',this)">Codz.</button>
+        <button class="sbtn" data-v="1" onclick="aFilter('prio',this)">1</button>
+        <button class="sbtn" data-v="2" onclick="aFilter('prio',this)">2</button>
+        <button class="sbtn" data-v="3" onclick="aFilter('prio',this)">3</button>
+        <button class="sbtn" data-v="4" onclick="aFilter('prio',this)">4</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-bottom:12px" id="a-stats"></div>
+
+  <!-- TABLE -->
+  <div class="tbl"><table class="t">
+    <thead><tr>
+      <th style="width:12px"></th>
+      <th onclick="aColSort('name')" style="cursor:pointer">Zadanie <span id="a-col-name" style="color:var(--mu)">↕</span></th>
+      <th onclick="aColSort('type')" style="cursor:pointer">Typ <span id="a-col-type" style="color:var(--mu)">↕</span></th>
+      <th onclick="aColSort('prio')" style="cursor:pointer">Priorytet <span id="a-col-prio" style="color:var(--mu)">↕</span></th>
+      <th onclick="aColSort('who')" style="cursor:pointer;text-align:center">Kto <span id="a-col-who" style="color:var(--mu)">↕</span></th>
+      <th onclick="aColSort('status')" style="cursor:pointer">Status <span id="a-col-status" style="color:var(--mu)">↕</span></th>
+      <th style="text-align:right">Akcje</th>
+    </tr></thead>
+    <tbody id="a-body"></tbody>
+  </table></div>
+</div>
+
+<!-- TAB 3: UKOŃCZONO -->
+<div class="view" id="v-u">
+  <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:11px 14px;margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <div>
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:var(--ok)">Ukończono</div>
+      <div style="font-size:10px;color:var(--mu)">Historia ukończonych zleceń</div>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mu)">Zlecone przez:</span>
+      <div style="display:flex;gap:4px;flex-wrap:wrap" id="u-filter"></div>
+    </div>
+    <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:var(--ok)" id="u-count">0</span>
+  </div>
+  <div id="u-list"></div>
+</div>
+
+</div><!-- /pg -->
+</div><!-- /app -->
+
+<!-- CONFIRM MODAL -->
+<div class="mbg h" id="cmod">
+  <div class="modal" style="max-width:360px">
+    <div id="cmod-msg" style="font-size:13px;line-height:1.6;margin-bottom:16px"></div>
+    <div class="mbns">
+      <button class="btn" onclick="$('cmod').classList.add('h');cmodCb=null;">Anuluj</button>
+      <button class="btn wn" onclick="if(cmodCb)cmodCb();$('cmod').classList.add('h');cmodCb=null;">🗑️ Usuń</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="mbg h" id="emod" onclick="if(event.target===this)closeEd()">
+  <div class="modal">
+    <h2>✏️ Edytuj zlecenie</h2>
+    <div class="fg">
+      <div class="ff s2"><div class="fl">Nazwa *</div><input class="fi" id="ed-n"></div>
+      <div class="ff"><div class="fl">Priorytet</div>
+        <select class="fsel" id="ed-p">
+          <option value="1">1 Wysoki</option><option value="2">2 Średni</option>
+          <option value="3">3 Niski</option><option value="4">4 Kiedyś</option>
+        </select>
+      </div>
+      <div class="ff"><div class="fl">Typ</div>
+        <select class="fsel" id="ed-t">
+          <option value="once">Jednorazowe</option>
+          <option value="dc">✅ Codzienne</option>
+          <option value="cyc">🔄 Cykliczne</option>
+        </select>
+      </div>
+      <div class="ff"><div class="fl">Zlecający</div>
+        <select class="fsel" id="ed-who"></select>
+      </div>
+      <div class="ff s2"><div class="fl">Notatka</div><textarea class="fta" id="ed-note"></textarea></div>
+    </div>
+    <div class="mbns">
+      <button class="btn" onclick="closeEd()">Anuluj</button>
+      <button class="btn ok" onclick="saveEd()">💾 Zapisz</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

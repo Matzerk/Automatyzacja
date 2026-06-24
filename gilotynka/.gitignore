@@ -1,0 +1,3 @@
+# Realna konfiguracja z kluczami Supabase — nie commitujemy.
+# (klucz anon jest publiczny, ale lepiej trzymać go poza repo)
+config.js
