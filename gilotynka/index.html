@@ -170,6 +170,11 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tx)
     </div>
     <div id="wm-form-wrap" class="h">
       <div class="aform" style="margin-bottom:10px">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+          <select class="fsel" id="wm-tpl" onchange="tplPick('wm',this.value)" style="flex:1;min-width:150px"></select>
+          <button class="btn" onclick="saveTpl('wm')" title="Zapisz formularz jako szablon">💾 Szablon</button>
+          <button class="btn" onclick="openTpl()" title="Zarządzaj szablonami">📋</button>
+        </div>
         <div class="fg">
           <div class="ff s2"><div class="fl">Nazwa zadania *</div>
             <input class="fi" id="wm-n" list="name-sugg" placeholder="Co robisz / zrobiłeś..." autocomplete="off">
@@ -228,6 +233,11 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tx)
 
   <div id="add-form-wrap" class="h">
   <div class="aform" style="margin-bottom:10px">
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+      <select class="fsel" id="a-nw-tpl" onchange="tplPick('a-nw',this.value)" style="flex:1;min-width:150px"></select>
+      <button class="btn" onclick="saveTpl('a-nw')" title="Zapisz formularz jako szablon">💾 Szablon</button>
+      <button class="btn" onclick="openTpl()" title="Zarządzaj szablonami">📋 Szablony</button>
+    </div>
     <div class="fg">
       <div class="ff s2"><div class="fl">Nazwa zadania *</div>
         <input class="fi" id="a-nw-n" list="name-sugg" placeholder="Opis zadania..." autocomplete="off">
@@ -419,6 +429,16 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tx)
       <button class="btn" onclick="closeEd()">Anuluj</button>
       <button class="btn ok" onclick="saveEd()">💾 Zapisz</button>
     </div>
+  </div>
+</div>
+
+<!-- TEMPLATES MODAL -->
+<div class="mbg h" id="tmod" onclick="if(event.target===this)closeTpl()">
+  <div class="modal">
+    <h2>📋 Szablony zadań (pula)</h2>
+    <div style="font-size:11px;color:var(--mu);margin-bottom:12px">Wspólna biblioteka. Wybór z listy w formularzu wypełnia pola; własny szablon dodasz przyciskiem „💾 Szablon".</div>
+    <div id="tmod-list"></div>
+    <div class="mbns"><button class="btn" onclick="closeTpl()">Zamknij</button></div>
   </div>
 </div>
 

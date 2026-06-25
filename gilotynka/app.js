@@ -30,6 +30,7 @@ async function api(action, data, method) {
 // ─── Stan aplikacji ────────────────────────────────────────────
 const STATE = {
   tasks: [],         // [{id,name,t,p,note,status,ownerId,hours,createdBy,completedBy,completedDate}]
+  templates: [],     // [{id,name,t,p,note,createdBy}]
   profiles: {},      // id -> {name, role, email}
   me: null,          // {id, email, name, role}
   role: 'worker',
@@ -140,6 +141,69 @@ function refreshNameSuggestions(){
   dl.innerHTML=names.map(n=>`<option value="${esc(n)}">`).join('');
 }
 
+// ═══ SZABLONY („pula") ═══
+async function loadTemplates(){
+  try{ const j=await api('templates'); STATE.templates=j.templates||[]; }catch(e){/* brak dostępu */}
+}
+function refreshTplSelects(){
+  const opt='<option value="">— z szablonu…</option>'+
+    STATE.templates.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
+  ['wm-tpl','a-nw-tpl'].forEach(idd=>{const el=$(idd);if(el)el.innerHTML=opt;});
+}
+function setSeg(segId,val){
+  const seg=$(segId); if(!seg) return;
+  seg.querySelectorAll('.sbtn').forEach(b=>{b.className='sbtn'; if(b.dataset.v===String(val)) b.classList.add('on');});
+}
+function applyTplTo(prefix,t){
+  const nEl=$(prefix+'-n'); if(nEl) nEl.value=t.name;
+  const noteEl=$(prefix+'-note'); if(noteEl) noteEl.value=t.note||'';
+  const pv=t.p==='dc'?1:(+t.p||1);
+  setSeg(prefix+'-p-seg',pv); setSeg(prefix+'-t-seg',t.t);
+  const st=prefix==='wm'?WM:NW; st.p=pv; st.t=t.t;
+}
+function tplPick(prefix,id){
+  if(!id) return;
+  const t=STATE.templates.find(x=>String(x.id)===String(id));
+  if(t) applyTplTo(prefix,t);
+  const sel=$(prefix+'-tpl'); if(sel) sel.value='';
+}
+async function saveTpl(prefix){
+  const name=$(prefix+'-n').value.trim();
+  if(!name){alert('Najpierw wpisz nazwę zadania, potem zapisz jako szablon.');return;}
+  const st=prefix==='wm'?WM:NW;
+  gsStatus('⏳ Zapisuję szablon...');
+  try{
+    await api('template_create',{name,type:st.t,priority:st.p,note:$(prefix+'-note').value.trim()});
+    await loadTemplates(); refreshTplSelects();
+    gsStatus('✓ Zapisano szablon');
+  }catch(e){gsStatus('⚠ '+e.message);}
+}
+function openTpl(){ renderTplList(); $('tmod').classList.remove('h'); }
+function closeTpl(){ $('tmod').classList.add('h'); }
+function renderTplList(){
+  if(!STATE.templates.length){
+    $('tmod-list').innerHTML='<div class="empty" style="padding:18px">Brak szablonów. Wypełnij formularz i kliknij „💾 Szablon", aby dodać pierwszy.</div>';
+    return;
+  }
+  $('tmod-list').innerHTML=STATE.templates.map(t=>`
+    <div class="done-entry" style="padding:8px 10px">
+      <div style="flex:1">
+        <div style="font-size:12px">${esc(t.name)}</div>
+        <div style="display:flex;gap:5px;margin-top:3px;flex-wrap:wrap;align-items:center">${tBadge(t.t)}${pBadge(t.p)}${t.createdBy?`<span style="font-size:9px;color:var(--mu)">aut.: ${esc(nameOf(t.createdBy))}</span>`:''}</div>
+        ${t.note?`<div style="font-size:10px;color:var(--mu);margin-top:2px">${esc(t.note)}</div>`:''}
+      </div>
+      ${(isSup()||t.createdBy===STATE.me.id)?`<button class="ibtn" onclick="delTpl(${t.id})" title="Usuń szablon">🗑️</button>`:''}
+    </div>`).join('');
+}
+function delTpl(id){
+  const t=STATE.templates.find(x=>x.id===id);
+  showConfirm(`Usunąć szablon:<br><strong>${esc(t?t.name:'')}</strong>?`,async()=>{
+    gsStatus('⏳ Usuwam...');
+    try{ await api('template_delete',{id}); await loadTemplates(); refreshTplSelects(); renderTplList(); gsStatus('✓ Usunięto'); }
+    catch(e){gsStatus('⚠ '+e.message);}
+  });
+}
+
 // ═══ BADGES (liczniki w zakładkach) ═══
 function updateBadges(){
   const vis=visibleTasks();
@@ -161,6 +225,7 @@ function go(r){
 function renderCur(){
   buildSwitcher();
   refreshNameSuggestions();
+  refreshTplSelects();
   if(STATE.cur==='m') renderM();
   else if(STATE.cur==='a') renderA();
   else if(STATE.cur==='u') renderU();
@@ -625,6 +690,7 @@ async function enterApp(user){
     setProfiles(j.users);
     STATE.tasks=j.tasks||[];
   }catch(e){ gsStatus('⚠ '+e.message); }
+  await loadTemplates();
 
   $('me-name').textContent=user.name||user.email;
   const rp=$('me-role');

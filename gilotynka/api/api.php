@@ -28,6 +28,18 @@ function mapTask(array $r): array {
   ];
 }
 
+// mapowanie szablonu -> kształt dla frontu
+function mapTpl(array $r): array {
+  return [
+    'id'        => (int)$r['id'],
+    'name'      => $r['name'],
+    't'         => $r['type'],
+    'p'         => ctype_digit((string)$r['priority']) ? (int)$r['priority'] : $r['priority'],
+    'note'      => $r['note'] ?? '',
+    'createdBy' => $r['created_by'] !== null ? (int)$r['created_by'] : null,
+  ];
+}
+
 // godziny: '' / null -> NULL, w przeciwnym razie liczba >= 0 (krok 0.5 nie wymuszany)
 function parseHours($v) {
   if ($v === null || $v === '' ) return null;
@@ -269,6 +281,40 @@ switch ($action) {
     jsonOut(['users' => array_map(fn($u) => [
       'id'=>(int)$u['id'],'email'=>$u['email'],'name'=>$u['display_name'],'role'=>$u['role']
     ], $rows)]);
+  }
+
+  // ── SZABLONY („pula"): wspólna biblioteka, każdy widzi i dodaje ────
+  case 'templates': {
+    requireAuth();
+    $rows = db()->query('SELECT * FROM templates ORDER BY name')->fetchAll();
+    jsonOut(['templates' => array_map('mapTpl', $rows)]);
+  }
+
+  case 'template_create': {
+    $u = requireAuth();
+    $b = body();
+    $name = trim($b['name'] ?? '');
+    if ($name === '') jsonOut(['error' => 'Pusta nazwa'], 400);
+    $type = in_array($b['type'] ?? 'once', ['once','dc','cyc'], true) ? $b['type'] : 'once';
+    $prio = $type === 'dc' ? 'dc' : (string)(int)($b['priority'] ?? 1);
+    $st = db()->prepare('INSERT INTO templates (name,type,priority,note,created_by) VALUES (?,?,?,?,?)');
+    $st->execute([$name, $type, $prio, trim($b['note'] ?? ''), $u['id']]);
+    jsonOut(['ok' => true, 'id' => (int)db()->lastInsertId()]);
+  }
+
+  case 'template_delete': {
+    $u = requireAuth();
+    $id = (int)(body()['id'] ?? 0);
+    if (!$id) jsonOut(['error' => 'Brak id'], 400);
+    $st = db()->prepare('SELECT created_by FROM templates WHERE id = ?');
+    $st->execute([$id]);
+    $r = $st->fetch();
+    if (!$r) jsonOut(['error' => 'Nie ma takiego szablonu'], 404);
+    if ($u['role'] !== 'supervisor' && (int)$r['created_by'] !== (int)$u['id']) {
+      jsonOut(['error' => 'Możesz usuwać tylko swoje szablony.'], 403);
+    }
+    db()->prepare('DELETE FROM templates WHERE id = ?')->execute([$id]);
+    jsonOut(['ok' => true]);
   }
 
   default:

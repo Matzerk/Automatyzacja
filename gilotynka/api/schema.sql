@@ -35,3 +35,16 @@ CREATE TABLE IF NOT EXISTS tasks (
   INDEX idx_owner_id (owner_id),
   INDEX idx_created_by (created_by)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Szablony zadań („pula") — wspólna biblioteka. Szef i wykonawca mogą dodawać,
+-- wszyscy widzą i dobierają z niej do swoich zadań.
+CREATE TABLE IF NOT EXISTS templates (
+  id            INT AUTO_INCREMENT PRIMARY KEY,
+  name          VARCHAR(255) NOT NULL,
+  type          ENUM('once','dc','cyc') NOT NULL DEFAULT 'once',
+  priority      VARCHAR(4) NOT NULL DEFAULT '1',
+  note          TEXT,
+  created_by    INT NULL,
+  created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_tpl_created_by FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
