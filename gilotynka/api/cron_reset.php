@@ -24,9 +24,10 @@ if (!$isCli) {
   }
 }
 
-$a = db()->exec("UPDATE tasks SET status='w_realizacji', completed_date=NULL, completed_by=NULL
+// reset statusu + wyczyszczenie godzin (każdy cykl liczy czas od nowa)
+$a = db()->exec("UPDATE tasks SET status='w_realizacji', completed_date=NULL, completed_by=NULL, hours=NULL
                  WHERE type='dc' AND status IN ('ukonczone','nie_potrzeby')");
-$b = db()->exec("UPDATE tasks SET status='oczekiwanie', completed_date=NULL, completed_by=NULL
+$b = db()->exec("UPDATE tasks SET status='oczekiwanie', completed_date=NULL, completed_by=NULL, hours=NULL
                  WHERE type='cyc' AND status='ukonczone'");
 
 echo "Reset OK. Codzienne: {$a}, cykliczne: {$b}\n";

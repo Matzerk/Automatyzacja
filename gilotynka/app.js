@@ -1,7 +1,8 @@
 // ═══════════════════════════════════════════════════════════════
 //  GILOTYNKA 🪓 — logika aplikacji (backend PHP + MySQL na kei.pl)
 //  Zapis: REST do api/api.php. Synchronizacja: odświeżanie co kilka s.
-//  Role: 'supervisor' (nadzorca) tworzy/edytuje, 'worker' oznacza postęp.
+//  Role: 'supervisor' (nadzorca) widzi wszystkich i przełącza się
+//        między pracownikami; 'worker' widzi i tworzy tylko swoje.
 //  Ścieżki WZGLĘDNE — działa też w podkatalogu (np. /gilotynka/).
 // ═══════════════════════════════════════════════════════════════
 
@@ -28,11 +29,12 @@ async function api(action, data, method) {
 
 // ─── Stan aplikacji ────────────────────────────────────────────
 const STATE = {
-  tasks: [],         // [{id,name,t,p,note,status,createdBy,completedBy,completedDate}]
-  profiles: {},      // id -> {name, role}
+  tasks: [],         // [{id,name,t,p,note,status,ownerId,hours,createdBy,completedBy,completedDate}]
+  profiles: {},      // id -> {name, role, email}
   me: null,          // {id, email, name, role}
   role: 'worker',
   cur: 'a',
+  viewAs: 'all',     // (nadzorca) 'all' albo id pracownika — czyje zadania oglądamy
 };
 let _poll = null;
 
@@ -81,24 +83,71 @@ function stBadge(st){
   if(st==='nie_potrzeby') return'<span class="b st-wait">⊘ pominięte</span>';
   return'<span class="b st-done">✓ ukończone</span>';
 }
+// godziny -> tekst/badge
+function hNum(h){return h==null?null:(Number.isInteger(h)?h:+(+h).toFixed(1));}
+function hStr(h){const n=hNum(h);return n==null?'':n+'h';}
+function hBadge(h){const s=hStr(h);return s?`<span class="b b-cy" title="godziny pracy">⏱ ${s}</span>`:'';}
 function hueOf(id){let h=0;const s=String(id||'');for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))%360;return h;}
 function nameOf(id){const p=STATE.profiles[id];return p?p.name:'?';}
+function roleOf(id){const p=STATE.profiles[id];return p?p.role:'';}
 function initialOf(id){const n=nameOf(id);return (n[0]||'?').toUpperCase();}
 function whoBadge(id){
-  if(!id) return'';
+  if(!id) return'<span class="b b-on" title="nieprzypisane">— nieprzypisane</span>';
   const hue=hueOf(id);
   return`<span title="${esc(nameOf(id))}" style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:10px;color:#fff;background:hsl(${hue} 45% 45%)">${esc(initialOf(id))}</span>`;
 }
 
-// ═══ BADGES ═══
+const isSup = () => STATE.role==='supervisor';
+
+// lista pracowników (do przełącznika i przypisywania): wszyscy użytkownicy
+function allUsers(){
+  return Object.entries(STATE.profiles).map(([id,p])=>({id:+id,name:p.name,role:p.role}))
+    .sort((a,b)=>(a.role===b.role?0:a.role==='worker'?-1:1)||a.name.localeCompare(b.name,'pl'));
+}
+
+// zadania widoczne w bieżącym kontekście (nadzorca: wg przełącznika; wykonawca: swoje)
+function visibleTasks(){
+  if(!isSup()) return STATE.tasks;
+  if(STATE.viewAs==='all') return STATE.tasks;
+  const id=+STATE.viewAs;
+  return STATE.tasks.filter(t=>t.ownerId===id);
+}
+
+// ═══ PRZEŁĄCZNIK PRACOWNIKA (nadzorca) ═══
+function buildSwitcher(){
+  const sel=$('viewAs'); if(!sel) return;
+  if(!isSup()){ sel.classList.add('h'); return; }
+  sel.classList.remove('h');
+  const cur=STATE.viewAs;
+  const opts=['<option value="all">👥 Wszyscy</option>']
+    .concat(allUsers().map(u=>`<option value="${u.id}">${u.role==='supervisor'?'🛡️':'🧒'} ${esc(u.name)}</option>`));
+  sel.innerHTML=opts.join('');
+  sel.value=cur;
+}
+function setViewAs(v){ STATE.viewAs=v; renderCur(); }
+
+// opcje wyboru właściciela (select) — '' = nieprzypisane
+function ownerOptions(selected){
+  const opts=['<option value="">— nieprzypisane</option>']
+    .concat(allUsers().map(u=>`<option value="${u.id}"${(+selected===u.id)?' selected':''}>${esc(u.name)}${u.role==='supervisor'?' (nadzorca)':''}</option>`));
+  return opts.join('');
+}
+
+// podpowiedzi nazw (datalist) z dotychczas używanych nazw
+function refreshNameSuggestions(){
+  const dl=$('name-sugg'); if(!dl) return;
+  const names=[...new Set(STATE.tasks.map(t=>t.name).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pl'));
+  dl.innerHTML=names.map(n=>`<option value="${esc(n)}">`).join('');
+}
+
+// ═══ BADGES (liczniki w zakładkach) ═══
 function updateBadges(){
-  const inM=STATE.tasks.filter(t=>t.status==='w_realizacji').length;
-  const doneAll=STATE.tasks.filter(t=>t.status==='ukonczone').length;
+  const vis=visibleTasks();
+  const inM=vis.filter(t=>t.status==='w_realizacji').length;
+  const doneAll=vis.filter(t=>t.status==='ukonczone').length;
   const bm=$('badge-m');if(bm){bm.textContent=inM;bm.classList.toggle('h',inM===0);}
   const bu=$('badge-u');if(bu){bu.textContent=doneAll;bu.classList.toggle('h',doneAll===0);}
 }
-
-const isSup = () => STATE.role==='supervisor';
 
 // ═══ ROUTING ═══
 function go(r){
@@ -110,6 +159,8 @@ function go(r){
   renderCur();
 }
 function renderCur(){
+  buildSwitcher();
+  refreshNameSuggestions();
   if(STATE.cur==='m') renderM();
   else if(STATE.cur==='a') renderA();
   else if(STATE.cur==='u') renderU();
@@ -117,35 +168,89 @@ function renderCur(){
   updateBadges();
 }
 
+// ═══ GODZINY — wspólny edytor ═══
+async function setHours(id){
+  const t=STATE.tasks.find(x=>x.id===id);
+  const cur=t&&t.hours!=null?String(hNum(t.hours)):'';
+  const v=prompt('Godziny pracy (np. 2 lub 1.5). Puste = wyczyść:', cur);
+  if(v===null) return;
+  const val=v.trim()===''?null:parseFloat(v.replace(',','.'));
+  if(val!==null&&(isNaN(val)||val<0)){alert('Podaj liczbę godzin ≥ 0.');return;}
+  gsStatus('⏳ Zapisuję...');
+  try{ await api('task_hours',{id,hours:val}); gsStatus('✓ Zapisano'); await reload(); }
+  catch(e){gsStatus('⚠ '+e.message);}
+}
+
 // ═══ TAB 1: MOJE ZADANIA ═══
 function renderM(){
-  const mine=STATE.tasks.filter(t=>t.status==='w_realizacji'||t.status==='nie_potrzeby'||(t.status==='ukonczone'&&t.t==='dc')).sort(psort);
-  const active=mine.filter(t=>t.status==='w_realizacji').length;
+  // pokaż formularz dodawania tylko dla wykonawcy (nadzorca dodaje w zakładce Zadania)
+  $('wm-add').classList.toggle('h', isSup());
+
+  const showOwner=isSup();   // przy widoku „Wszyscy" warto pokazać czyje to zadanie
+  const mine=visibleTasks()
+    .filter(t=>t.status==='w_realizacji'||t.status==='oczekiwanie'||t.status==='nie_potrzeby'||(t.status==='ukonczone'&&t.t==='dc'))
+    .sort(psort);
+  const active=mine.filter(t=>t.status==='w_realizacji'||t.status==='oczekiwanie').length;
   $('m-count').textContent=active;
 
   if(!mine.length){
-    $('m-list').innerHTML=`<div class="empty"><div class="ei">🪓</div>Brak zadań na dziś.<br><span style="font-size:11px;color:var(--bd2)">${isSup()?'Idź do <strong style="color:var(--ac)">Zadania</strong> i kliknij <strong style="color:var(--bl)">▶ Przypisz</strong>.':'Nadzorca przypisze Ci zadania.'}</span></div>`;
+    $('m-list').innerHTML=`<div class="empty"><div class="ei">🪓</div>Brak zadań na dziś.<br><span style="font-size:11px;color:var(--bd2)">${isSup()?'Idź do <strong style="color:var(--ac)">Zadania</strong> i przypisz zadanie pracownikowi.':'Kliknij <strong style="color:var(--ok)">＋ Dodaj zadanie</strong>, aby dorzucić własne.'}</span></div>`;
     return;
   }
   $('m-list').innerHTML=mine.map(t=>{
     const isDone=t.status==='ukonczone';
     const isSkip=t.status==='nie_potrzeby';
     const isDimmed=isDone||isSkip;
+    const canEdit=isSup()||true; // wykonawca edytuje własne; nadzorca wszystkie
     return`<div class="task-card${isDimmed?' done-card-dc':''}" style="padding:5px 10px;flex-wrap:nowrap;gap:8px">
       <div class="dot" style="background:${dotC(t.p)};flex-shrink:0"></div>
       <div class="task-card-name" style="flex:1;${isDimmed?'text-decoration:line-through;color:var(--mu)':''}">${esc(t.name)}</div>
+      ${showOwner?whoBadge(t.ownerId):''}
       ${tBadge(t.t)}
+      ${hBadge(t.hours)}
       ${isSkip?'<span class="b" style="border-color:var(--mu);color:var(--mu);white-space:nowrap">⊘ pominięte</span>':''}
       <div style="display:flex;gap:4px;align-items:center;flex-shrink:0">
+        <button class="ibtn" onclick="setHours(${t.id})" title="Godziny pracy">⏱</button>
         ${isDimmed
           ?`<button class="btn sm" onclick="setStatus(${t.id},'${t.t==='dc'?'w_realizacji':'oczekiwanie'}')">↩</button>`
-          :`<button class="btn ok" style="padding:3px 9px;font-size:10px;white-space:nowrap" onclick="setStatus(${t.id},'ukonczone')">✓ Ukończono</button>
+          :`<button class="btn ok" style="padding:3px 9px;font-size:10px;white-space:nowrap" onclick="completeTask(${t.id})">✓ Ukończono</button>
             ${t.t==='dc'?`<button class="btn sm" onclick="setStatus(${t.id},'nie_potrzeby')" style="border-color:var(--mu);color:var(--mu);white-space:nowrap" title="Nie ma potrzeby">⊘</button>`:''}`}
-        ${isSup()?`<button class="ibtn e" onclick="openEd(${t.id})" title="Edytuj">✏️</button>
+        ${canEdit?`<button class="ibtn e" onclick="openEd(${t.id})" title="Edytuj">✏️</button>
         <button class="ibtn" onclick="delTask(${t.id})" title="Usuń">🗑️</button>`:''}
       </div>
     </div>`;
   }).join('');
+}
+
+// formularz wykonawcy
+const WM={p:1,t:'once'};
+function wmSeg(type,btn){
+  const segId='wm-'+type+'-seg';
+  document.querySelectorAll('#'+segId+' .sbtn').forEach(b=>b.className='sbtn');
+  btn.classList.add('on');
+  if(type==='p') WM.p=parseInt(btn.dataset.v);
+  else if(type==='t') WM.t=btn.dataset.v;
+}
+function toggleWForm(){
+  const w=$('wm-form-wrap'),b=$('wm-toggle');
+  const open=w.classList.contains('h');
+  w.classList.toggle('h',!open);
+  b.textContent=open?'▲ Zwiń':'＋ Dodaj zadanie';
+  b.className=open?'btn wn':'btn ok';
+  if(open) setTimeout(()=>$('wm-n')&&$('wm-n').focus(),50);
+}
+async function addTaskWorker(){
+  const name=$('wm-n').value.trim();
+  if(!name){alert('Wpisz nazwę zadania!');return;}
+  const hv=$('wm-hours').value.trim();
+  gsStatus('⏳ Zapisuję...');
+  try{
+    await api('task_create',{name,type:WM.t,priority:WM.p,note:$('wm-note').value.trim(),hours:hv===''?null:hv});
+    gsStatus('✓ Dodano');
+    $('wm-n').value='';$('wm-note').value='';$('wm-hours').value='';
+    toggleWForm();
+    await reload();
+  }catch(e){gsStatus('⚠ '+e.message);}
 }
 
 // ═══ TAB 2: ZADANIA (tylko nadzorca) ═══
@@ -161,17 +266,22 @@ function toggleForm(){
   const wrap=$('add-form-wrap'),btn=$('form-toggle-btn'),hint=$('form-toggle-hint');
   const open=wrap.classList.contains('h');
   wrap.classList.toggle('h',!open);
-  if(open){btn.textContent='▲ Zwiń formularz';btn.className='btn wn';if(hint)hint.textContent='';setTimeout(()=>$('a-nw-n')&&$('a-nw-n').focus(),50);}
+  if(open){btn.textContent='▲ Zwiń formularz';btn.className='btn wn';if(hint)hint.textContent='';
+    // domyślny właściciel = aktualnie wybrany pracownik w przełączniku
+    $('a-nw-owner').innerHTML=ownerOptions(STATE.viewAs!=='all'?STATE.viewAs:'');
+    setTimeout(()=>$('a-nw-n')&&$('a-nw-n').focus(),50);}
   else{btn.textContent='＋ Dodaj zlecenie';btn.className='btn ok';if(hint)hint.textContent='kliknij aby rozwinąć formularz';}
 }
-function clearForm(){$('a-nw-n').value='';$('a-nw-note').value='';}
+function clearForm(){$('a-nw-n').value='';$('a-nw-note').value='';$('a-nw-hours').value='';}
 
 async function addTask(){
   const name=$('a-nw-n').value.trim();
   if(!name){alert('Wpisz nazwę zadania!');return;}
+  const hv=$('a-nw-hours').value.trim();
+  const owner=$('a-nw-owner').value;
   gsStatus('⏳ Zapisuję...');
   try{
-    await api('task_create',{name,type:NW.t,priority:NW.p,note:$('a-nw-note').value.trim()});
+    await api('task_create',{name,type:NW.t,priority:NW.p,note:$('a-nw-note').value.trim(),hours:hv===''?null:hv,owner_id:owner===''?null:owner});
     gsStatus('✓ Dodano');
     clearForm();
     const wrap=$('add-form-wrap'); if(wrap&&!wrap.classList.contains('h')) toggleForm();
@@ -182,6 +292,21 @@ async function addTask(){
 async function setStatus(id,status){
   gsStatus('⏳ Zapisuję...');
   try{ await api('task_status',{id,status}); gsStatus('✓ Zapisano'); await reload(); }
+  catch(e){gsStatus('⚠ '+e.message);}
+}
+// ukończenie z opcjonalnym dopytaniem o godziny, jeśli jeszcze nie wpisane
+async function completeTask(id){
+  const t=STATE.tasks.find(x=>x.id===id);
+  let hours;
+  if(t&&t.hours==null){
+    const v=prompt('Ile godzin zajęło to zadanie? (np. 2 lub 1.5; puste = pomiń):','');
+    if(v===null){ /* anuluj całość */ return; }
+    const val=v.trim()===''?null:parseFloat(v.replace(',','.'));
+    if(val!==null&&(isNaN(val)||val<0)){alert('Podaj liczbę godzin ≥ 0.');return;}
+    hours=val;
+  }
+  gsStatus('⏳ Zapisuję...');
+  try{ await api('task_status',hours!==undefined?{id,status:'ukonczone',hours}:{id,status:'ukonczone'}); gsStatus('✓ Zapisano'); await reload(); }
   catch(e){gsStatus('⚠ '+e.message);}
 }
 function assignTask(id){
@@ -210,9 +335,18 @@ function openEd(id){
   $('ed-n').value=t.name;
   $('ed-p').value=t.p==='dc'?'1':String(t.p);
   $('ed-t').value=t.t;
-  const sups=Object.entries(STATE.profiles).filter(([,p])=>p.role==='supervisor');
-  $('ed-who').innerHTML=sups.map(([id,p])=>`<option value="${id}">${esc(p.name)}</option>`).join('')||`<option value="${STATE.me.id}">${esc(nameOf(STATE.me.id))}</option>`;
-  $('ed-who').value=t.createdBy||STATE.me.id;
+  $('ed-hours').value=t.hours!=null?String(hNum(t.hours)):'';
+  // pola tylko dla nadzorcy: zlecający + właściciel
+  const supOnly=document.querySelectorAll('#ed-who, #ed-owner');
+  if(isSup()){
+    const sups=Object.entries(STATE.profiles).filter(([,p])=>p.role==='supervisor');
+    $('ed-who').innerHTML=sups.map(([id,p])=>`<option value="${id}">${esc(p.name)}</option>`).join('')||`<option value="${STATE.me.id}">${esc(nameOf(STATE.me.id))}</option>`;
+    $('ed-who').value=t.createdBy||STATE.me.id;
+    $('ed-owner').innerHTML=ownerOptions(t.ownerId);
+    supOnly.forEach(el=>el.closest('.ff').classList.remove('h'));
+  }else{
+    supOnly.forEach(el=>el.closest('.ff').classList.add('h'));
+  }
   $('ed-note').value=t.note||'';
   $('emod').classList.remove('h');
 }
@@ -222,16 +356,23 @@ async function saveEd(){
   const t=STATE.tasks.find(x=>x.id===edId);
   if(!t){closeEd();return;}
   const newT=$('ed-t').value;
+  const hv=$('ed-hours').value.trim();
+  const payload={
+    id:edId,
+    name:$('ed-n').value.trim()||t.name,
+    type:newT,
+    priority:parseInt($('ed-p').value)||1,
+    note:$('ed-note').value.trim(),
+    hours:hv===''?null:hv,
+  };
+  if(isSup()){
+    payload.created_by=parseInt($('ed-who').value)||null;
+    const ow=$('ed-owner').value;
+    payload.owner_id=ow===''?null:ow;
+  }
   gsStatus('⏳ Zapisuję...');
   try{
-    await api('task_update',{
-      id:edId,
-      name:$('ed-n').value.trim()||t.name,
-      type:newT,
-      priority:parseInt($('ed-p').value)||1,
-      created_by:parseInt($('ed-who').value)||null,
-      note:$('ed-note').value.trim(),
-    });
+    await api('task_update',payload);
     gsStatus('✓ Zapisano');
     closeEd();
     await reload();
@@ -240,13 +381,14 @@ async function saveEd(){
 
 let aState={sort:'prio',sortDir:1,fType:'all',fPrio:'all'};
 function renderA(){
-  const all=[...STATE.tasks];
+  const all=visibleTasks();
+  const sumH=all.reduce((s,t)=>s+(t.hours!=null?+t.hours:0),0);
   const stats=[
     {lbl:'Wszystkich',val:all.length,col:'var(--ac)'},
     {lbl:'Oczekiwanie',val:all.filter(t=>t.status==='oczekiwanie').length,col:'var(--mu)'},
     {lbl:'W realizacji',val:all.filter(t=>t.status==='w_realizacji').length,col:'var(--bl)'},
     {lbl:'Ukończone',val:all.filter(t=>t.status==='ukonczone').length,col:'var(--ok)'},
-    {lbl:'Codzienne',val:all.filter(t=>t.t==='dc').length,col:'var(--ac)'},
+    {lbl:'Godzin (suma)',val:hStr(sumH)||'0h',col:'var(--ac)'},
   ];
   $('a-stats').innerHTML=stats.map(s=>`
     <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:7px;padding:10px 12px;text-align:center">
@@ -265,7 +407,8 @@ function renderA(){
     if(aState.sort==='prio') v=(a.p==='dc'?0:+a.p||99)-(b.p==='dc'?0:+b.p||99);
     else if(aState.sort==='type') v=(typeOrder[a.t]||9)-(typeOrder[b.t]||9);
     else if(aState.sort==='name') v=a.name.localeCompare(b.name,'pl');
-    else if(aState.sort==='who') v=nameOf(a.createdBy).localeCompare(nameOf(b.createdBy),'pl');
+    else if(aState.sort==='who') v=nameOf(a.ownerId).localeCompare(nameOf(b.ownerId),'pl');
+    else if(aState.sort==='hours') v=((a.hours!=null?+a.hours:-1)-(b.hours!=null?+b.hours:-1));
     else if(aState.sort==='status') v=(stOrder[a.status]||0)-(stOrder[b.status]||0);
     return v*aState.sortDir;
   });
@@ -283,11 +426,14 @@ function renderA(){
       </td>
       <td>${tBadge(t.t)}</td>
       <td>${pBadge(t.p)}</td>
-      <td style="text-align:center">${whoBadge(t.createdBy)}</td>
+      <td style="text-align:center">${whoBadge(t.ownerId)}</td>
+      <td style="text-align:center">
+        <button class="btn sm" onclick="setHours(${t.id})" title="Ustaw godziny" style="min-width:42px">${t.hours!=null?'⏱ '+hStr(t.hours):'⏱ +'}</button>
+      </td>
       <td>${stBadge(t.status)}</td>
       <td>
         <div style="display:flex;gap:4px;justify-content:flex-end;align-items:center;flex-wrap:wrap">
-          ${t.status==='oczekiwanie'?`<button class="btn sm bl" onclick="assignTask(${t.id})">▶ Przypisz</button>`:''}
+          ${t.status==='oczekiwanie'?`<button class="btn sm bl" onclick="assignTask(${t.id})">▶ Start</button>`:''}
           ${isInProg?`<button class="btn sm" onclick="assignTask(${t.id})" style="border-color:rgba(91,155,212,.5);color:var(--bl);background:rgba(91,155,212,.08)">🔄 w realizacji ×</button>`:''}
           ${isDone?`<button class="btn sm" onclick="setStatus(${t.id},'${t.t==='dc'?'w_realizacji':'oczekiwanie'}')">↩ Przywróć</button>`:''}
           <button class="ibtn e" onclick="openEd(${t.id})" title="Edytuj">✏️</button>
@@ -295,21 +441,24 @@ function renderA(){
         </div>
       </td>
     </tr>`;
-  }).join(''):`<tr><td colspan="7" class="empty" style="padding:20px">Brak zadań spełniających kryteria</td></tr>`;
+  }).join(''):`<tr><td colspan="8" class="empty" style="padding:20px">Brak zadań spełniających kryteria</td></tr>`;
 }
 function aSort(btn){
   const v=btn.dataset.v;
   if(aState.sort===v) aState.sortDir*=-1; else{aState.sort=v;aState.sortDir=1;}
   document.querySelectorAll('#a-sort-seg .sbtn').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
-  ['name','type','prio','who','status'].forEach(c=>{const el=$('a-col-'+c);if(el)el.textContent=aState.sort===c?(aState.sortDir===1?'↑':'↓'):'↕';});
+  refreshSortArrows();
   renderA();
 }
 function aColSort(col){
   if(aState.sort===col) aState.sortDir*=-1; else{aState.sort=col;aState.sortDir=1;}
   document.querySelectorAll('#a-sort-seg .sbtn').forEach(b=>b.classList.toggle('on',b.dataset.v===col));
-  ['name','type','prio','who','status'].forEach(c=>{const el=$('a-col-'+c);if(el)el.textContent=aState.sort===c?(aState.sortDir===1?'↑':'↓'):'↕';});
+  refreshSortArrows();
   renderA();
+}
+function refreshSortArrows(){
+  ['name','type','prio','who','hours','status'].forEach(c=>{const el=$('a-col-'+c);if(el)el.textContent=aState.sort===c?(aState.sortDir===1?'↑':'↓'):'↕';});
 }
 function aFilter(kind,btn){
   const segId='a-f'+kind+'-seg';
@@ -321,50 +470,45 @@ function aFilter(kind,btn){
 }
 
 // ═══ TAB 3: UKOŃCZONO ═══
-const uActive={};
-function buildUFilter(){
-  const sups=Object.entries(STATE.profiles).filter(([,p])=>p.role==='supervisor');
-  sups.forEach(([id])=>{ if(uActive[id]===undefined) uActive[id]=true; });
-  $('u-filter').innerHTML=sups.map(([id,p])=>
-    `<button class="sbtn${uActive[id]?' on':''}" id="uf-${id}" onclick="uFilter('${id}')">${esc(p.name)}</button>`).join('');
-}
-function uFilter(id){
-  uActive[id]=!uActive[id];
-  const b=$('uf-'+id);if(b)b.classList.toggle('on',uActive[id]);
-  renderU();
-}
 function renderU(){
-  buildUFilter();
-  const activeWho=Object.entries(uActive).filter(([,v])=>v).map(([k])=>+k);
-  const done=STATE.tasks
-    .filter(t=>t.status==='ukonczone'&&(!t.createdBy||activeWho.includes(t.createdBy)))
+  const done=visibleTasks()
+    .filter(t=>t.status==='ukonczone')
     .sort((a,b)=>(b.completedDate||'').localeCompare(a.completedDate||''));
-  $('u-count').textContent=STATE.tasks.filter(t=>t.status==='ukonczone').length;
+  $('u-count').textContent=done.length;
+  const totalH=done.reduce((s,t)=>s+(t.hours!=null?+t.hours:0),0);
+  $('u-hours').textContent=hStr(totalH)||'0h';
 
   if(!done.length){
-    $('u-list').innerHTML=`<div class="empty"><div class="ei">✅</div>Brak ukończonych dla wybranych filtrów.</div>`;
+    $('u-list').innerHTML=`<div class="empty"><div class="ei">✅</div>Brak ukończonych zadań.</div>`;
     return;
   }
   const byDate={};
   done.forEach(t=>{const d=t.completedDate||'brak';if(!byDate[d])byDate[d]=[];byDate[d].push(t);});
-  $('u-list').innerHTML=Object.entries(byDate).map(([date,items])=>`
+  $('u-list').innerHTML=Object.entries(byDate).map(([date,items])=>{
+    const dayH=items.reduce((s,t)=>s+(t.hours!=null?+t.hours:0),0);
+    return`
     <div style="margin-bottom:14px">
-      <div style="font-size:10px;font-weight:700;color:var(--ac);letter-spacing:1px;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--bd)">${fmtDate(date==='brak'?null:date)}</div>
+      <div style="font-size:10px;font-weight:700;color:var(--ac);letter-spacing:1px;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center">
+        <span>${fmtDate(date==='brak'?null:date)}</span>
+        ${dayH>0?`<span style="color:var(--bl)">⏱ ${hStr(dayH)}</span>`:''}
+      </div>
       ${items.map(t=>`
         <div class="done-entry">
           <div class="dot" style="background:${dotC(t.p)};flex-shrink:0"></div>
           <div style="flex:1">
             <div style="font-size:12px">${esc(t.name)}</div>
             ${t.note?`<div style="font-size:10px;color:var(--mu);margin-top:1px">${esc(t.note)}</div>`:''}
-            <div style="display:flex;gap:5px;margin-top:4px;flex-wrap:wrap;align-items:center">${tBadge(t.t)}${pBadge(t.p)}${whoBadge(t.createdBy)}${t.completedBy?`<span style="font-size:9px;color:var(--mu)">wyk.: ${esc(nameOf(t.completedBy))}</span>`:''}</div>
+            <div style="display:flex;gap:5px;margin-top:4px;flex-wrap:wrap;align-items:center">${tBadge(t.t)}${pBadge(t.p)}${hBadge(t.hours)}${whoBadge(t.ownerId)}${t.completedBy?`<span style="font-size:9px;color:var(--mu)">wyk.: ${esc(nameOf(t.completedBy))}</span>`:''}</div>
           </div>
           <div style="display:flex;gap:5px;align-items:center">
+            <button class="ibtn" onclick="setHours(${t.id})" title="Godziny">⏱</button>
             <button class="btn sm" onclick="setStatus(${t.id},'${t.t==='dc'?'w_realizacji':'oczekiwanie'}')">↩ Przywróć</button>
-            ${isSup()?`<button class="ibtn e" onclick="openEd(${t.id})" title="Edytuj">✏️</button>
-            <button class="ibtn" onclick="delTask(${t.id})" title="Usuń">🗑️</button>`:''}
+            <button class="ibtn e" onclick="openEd(${t.id})" title="Edytuj">✏️</button>
+            <button class="ibtn" onclick="delTask(${t.id})" title="Usuń">🗑️</button>
           </div>
         </div>`).join('')}
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 // ═══ TAB 4: KONTA (tylko nadzorca) ═══
@@ -474,6 +618,7 @@ async function doLogout(){
 async function enterApp(user){
   STATE.me=user;
   STATE.role=user.role;
+  STATE.viewAs='all';
   // wczytaj dane startowe (użytkownicy + zadania jednym żądaniem)
   try{
     const j=await api('bootstrap');
@@ -488,6 +633,7 @@ async function enterApp(user){
 
   $('tab-a').classList.toggle('h',!isSup());
   $('tab-k').classList.toggle('h',!isSup());
+  buildSwitcher();
 
   $('login').classList.add('h');
   $('app').classList.remove('h');

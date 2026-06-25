@@ -5,15 +5,24 @@ i Google Sheets dane trzyma **baza MySQL** na Waszym hostingu, a logiką steruje
 **backend PHP**. Aplikacja:
 
 - działa dla **wielu osób**, z **logowaniem** i **rolami**:
-  - **nadzorca** (`supervisor`) — tworzy, edytuje, usuwa, przypisuje zadania i zarządza kontami,
-  - **wykonawca** (`worker`) — widzi swoje zadania i oznacza je jako ukończone/pominięte
-    (nie może edytować ani kasować);
+  - **nadzorca** (`supervisor`) — widzi **wszystkich** pracowników, **przełącza się**
+    między nimi (lista u góry: „👥 Wszyscy" → konkretna osoba), tworzy/edytuje/usuwa
+    i **przypisuje** zadania dowolnemu pracownikowi oraz zarządza kontami,
+  - **wykonawca** (`worker`) — widzi i obsługuje **tylko swoje** zadania, **sam dodaje**
+    własne zadania (z podpowiedziami wcześniejszych nazw) i wpisuje **godziny** pracy,
+    oznacza je jako ukończone/pominięte;
+- każde zadanie ma **właściciela** (`owner_id`) i opcjonalne **godziny** (`hours`) —
+  pracownik wykazuje *co* i *ile godzin* zrobił danego dnia; w „Ukończono" jest
+  **dzienna suma godzin**;
 - **synchronizuje** dane między urządzeniami (odświeżanie co ~6 s);
-- **codzienny reset** zadań codziennych/cyklicznych robi **CRON** hostingu;
+- **codzienny reset** zadań codziennych/cyklicznych (status + wyczyszczenie godzin)
+  robi **CRON** hostingu;
 - jest w **podkatalogu** — docelowo `miroslawkielar.com/gilotynka` (ścieżki względne).
 
-> Po co role? Kilka osób (np. rodzice) kontroluje pracę **jednej** osoby.
-> Nadzorcy rozdają i sprawdzają zadania, wykonawca je odhacza.
+> Model danych: jedna baza, jedna instalacja. „Osobna gilotynka per pracownik"
+> (jak zakładki w Google Sheets) jest realizowana logicznie — przez właściciela
+> zadania + przełącznik pracownika u góry. Pracownik widzi tylko siebie, nadzorca
+> przełącza się między wszystkimi.
 
 Wymagania hostingu (kei.pl je spełnia): **PHP 8.0+**, **MySQL**, **CRON**, **FTP**.
 

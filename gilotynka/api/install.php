@@ -29,6 +29,28 @@ foreach (explode(';', $sql) as $stmt) {
 }
 $log[] = '✓ Tabele utworzone (lub już istniały).';
 
+// 1b) Migracja: dołóż kolumny owner_id / hours, jeśli baza pochodzi ze starszej wersji
+$dbName = cfg()['db']['name'];
+function colExists(string $db, string $table, string $col): bool {
+  $st = db()->prepare(
+    'SELECT COUNT(*) FROM information_schema.columns
+     WHERE table_schema = ? AND table_name = ? AND column_name = ?'
+  );
+  $st->execute([$db, $table, $col]);
+  return (int)$st->fetchColumn() > 0;
+}
+if (!colExists($dbName, 'tasks', 'owner_id')) {
+  db()->exec('ALTER TABLE tasks ADD COLUMN owner_id INT NULL AFTER status');
+  db()->exec('ALTER TABLE tasks ADD INDEX idx_owner_id (owner_id)');
+  try { db()->exec('ALTER TABLE tasks ADD CONSTRAINT fk_owner_id FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE SET NULL'); }
+  catch (Throwable $e) { /* klucz mógł już istnieć */ }
+  $log[] = '✓ Migracja: dodano kolumnę owner_id.';
+}
+if (!colExists($dbName, 'tasks', 'hours')) {
+  db()->exec('ALTER TABLE tasks ADD COLUMN hours DECIMAL(5,1) NULL AFTER owner_id');
+  $log[] = '✓ Migracja: dodano kolumnę hours.';
+}
+
 // 2) Konta
 $created = 0;
 foreach (cfg()['install_users'] ?? [] as $u) {

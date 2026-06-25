@@ -21,13 +21,17 @@ CREATE TABLE IF NOT EXISTS tasks (
   note            TEXT,
   status          ENUM('oczekiwanie','w_realizacji','ukonczone','nie_potrzeby')
                   NOT NULL DEFAULT 'oczekiwanie',
-  created_by      INT NULL,
+  owner_id        INT NULL,                                -- pracownik wykonujący (do kogo należy zadanie)
+  hours           DECIMAL(5,1) NULL,                       -- godziny pracy (łączny czas)
+  created_by      INT NULL,                                -- kto utworzył/zlecił
   completed_by    INT NULL,
   completed_date  DATE NULL,
   created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_owner_id    FOREIGN KEY (owner_id)     REFERENCES users(id) ON DELETE SET NULL,
   CONSTRAINT fk_created_by  FOREIGN KEY (created_by)   REFERENCES users(id) ON DELETE SET NULL,
   CONSTRAINT fk_completed_by FOREIGN KEY (completed_by) REFERENCES users(id) ON DELETE SET NULL,
   INDEX idx_status (status),
+  INDEX idx_owner_id (owner_id),
   INDEX idx_created_by (created_by)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

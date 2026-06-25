@@ -135,6 +135,7 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tx)
       </div>
     </div>
     <div style="display:flex;gap:10px;align-items:center">
+      <select class="fsel h" id="viewAs" onchange="setViewAs(this.value)" title="Czyje zadania oglądasz" style="width:auto;padding:4px 8px;font-size:11px"></select>
       <span id="gs-status" style="font-size:10px;color:var(--mu)"></span>
       <div class="whoami"><span id="me-name"></span><span class="role-pill" id="me-role"></span></div>
       <button class="btn sm" id="thBtn" onclick="toggleTheme()">🌙</button>
@@ -160,7 +161,51 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tx)
     </div>
     <span style="margin-left:auto;font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:var(--bl)" id="m-count">0</span>
   </div>
+
+  <!-- Dodawanie własnego zadania (wykonawca) -->
+  <div id="wm-add" class="h">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <button class="btn ok" onclick="toggleWForm()" id="wm-toggle">＋ Dodaj zadanie</button>
+      <span style="font-size:10px;color:var(--mu)">dorzuć własne zadanie i wpisz godziny</span>
+    </div>
+    <div id="wm-form-wrap" class="h">
+      <div class="aform" style="margin-bottom:10px">
+        <div class="fg">
+          <div class="ff s2"><div class="fl">Nazwa zadania *</div>
+            <input class="fi" id="wm-n" list="name-sugg" placeholder="Co robisz / zrobiłeś..." autocomplete="off">
+          </div>
+          <div class="ff"><div class="fl">Priorytet</div>
+            <div class="seg" id="wm-p-seg">
+              <button class="sbtn on" data-v="1" onclick="wmSeg('p',this)">1 Wysoki</button>
+              <button class="sbtn" data-v="2" onclick="wmSeg('p',this)">2 Średni</button>
+              <button class="sbtn" data-v="3" onclick="wmSeg('p',this)">3 Niski</button>
+              <button class="sbtn" data-v="4" onclick="wmSeg('p',this)">4 Kiedyś</button>
+            </div>
+          </div>
+          <div class="ff"><div class="fl">Typ</div>
+            <div class="seg" id="wm-t-seg">
+              <button class="sbtn on2 on" data-v="once" onclick="wmSeg('t',this)">Jednorazowe</button>
+              <button class="sbtn" data-v="dc" onclick="wmSeg('t',this)">✅ Codzienne</button>
+              <button class="sbtn" data-v="cyc" onclick="wmSeg('t',this)">🔄 Cykliczne</button>
+            </div>
+          </div>
+          <div class="ff"><div class="fl">Godziny (opcjonalnie)</div>
+            <input class="fi" id="wm-hours" type="number" min="0" step="0.5" placeholder="np. 2 lub 1.5">
+          </div>
+          <div class="ff s2"><div class="fl">Notatka (opcjonalna)</div>
+            <textarea class="fta" id="wm-note" placeholder="Szczegóły..." style="min-height:38px"></textarea>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn ok" onclick="addTaskWorker()">＋ Dodaj</button>
+          <button class="btn" onclick="toggleWForm()" style="margin-left:auto">▲ Zwiń</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="m-list"></div>
+  <datalist id="name-sugg"></datalist>
 </div>
 
 <!-- TAB 2: ZADANIA -->
@@ -185,7 +230,13 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tx)
   <div class="aform" style="margin-bottom:10px">
     <div class="fg">
       <div class="ff s2"><div class="fl">Nazwa zadania *</div>
-        <input class="fi" id="a-nw-n" placeholder="Opis zadania..." autocomplete="off">
+        <input class="fi" id="a-nw-n" list="name-sugg" placeholder="Opis zadania..." autocomplete="off">
+      </div>
+      <div class="ff"><div class="fl">Przypisz do (wykonawca)</div>
+        <select class="fsel" id="a-nw-owner"></select>
+      </div>
+      <div class="ff"><div class="fl">Godziny (opcjonalnie)</div>
+        <input class="fi" id="a-nw-hours" type="number" min="0" step="0.5" placeholder="np. 2 lub 1.5">
       </div>
       <div class="ff"><div class="fl">Priorytet</div>
         <div class="seg" id="a-nw-p-seg">
@@ -258,7 +309,8 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tx)
       <th onclick="aColSort('name')" style="cursor:pointer">Zadanie <span id="a-col-name" style="color:var(--mu)">↕</span></th>
       <th onclick="aColSort('type')" style="cursor:pointer">Typ <span id="a-col-type" style="color:var(--mu)">↕</span></th>
       <th onclick="aColSort('prio')" style="cursor:pointer">Priorytet <span id="a-col-prio" style="color:var(--mu)">↕</span></th>
-      <th onclick="aColSort('who')" style="cursor:pointer;text-align:center">Kto <span id="a-col-who" style="color:var(--mu)">↕</span></th>
+      <th onclick="aColSort('who')" style="cursor:pointer;text-align:center">Pracownik <span id="a-col-who" style="color:var(--mu)">↕</span></th>
+      <th onclick="aColSort('hours')" style="cursor:pointer;text-align:center">Godziny <span id="a-col-hours" style="color:var(--mu)">↕</span></th>
       <th onclick="aColSort('status')" style="cursor:pointer">Status <span id="a-col-status" style="color:var(--mu)">↕</span></th>
       <th style="text-align:right">Akcje</th>
     </tr></thead>
@@ -274,8 +326,8 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tx)
       <div style="font-size:10px;color:var(--mu)">Historia ukończonych zleceń</div>
     </div>
     <div style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <span style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mu)">Zlecone przez:</span>
-      <div style="display:flex;gap:4px;flex-wrap:wrap" id="u-filter"></div>
+      <span style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mu)">Suma godzin:</span>
+      <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:var(--ac)" id="u-hours">0h</span>
     </div>
     <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:var(--ok)" id="u-count">0</span>
   </div>
@@ -354,6 +406,12 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tx)
       </div>
       <div class="ff"><div class="fl">Zlecający</div>
         <select class="fsel" id="ed-who"></select>
+      </div>
+      <div class="ff"><div class="fl">Przypisz do (wykonawca)</div>
+        <select class="fsel" id="ed-owner"></select>
+      </div>
+      <div class="ff"><div class="fl">Godziny</div>
+        <input class="fi" id="ed-hours" type="number" min="0" step="0.5" placeholder="np. 2 lub 1.5">
       </div>
       <div class="ff s2"><div class="fl">Notatka</div><textarea class="fta" id="ed-note"></textarea></div>
     </div>
