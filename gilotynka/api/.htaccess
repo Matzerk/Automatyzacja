@@ -1,0 +1,13 @@
+# Blokuj bezpośredni dostęp z przeglądarki do plików konfiguracji i schematu.
+# PHP nadal może je czytać po stronie serwera.
+<FilesMatch "(config\.php|config\.example\.php|schema\.sql)$">
+  Require all denied
+</FilesMatch>
+
+# Starsze Apache (2.2):
+<IfModule !mod_authz_core.c>
+  <FilesMatch "(config\.php|config\.example\.php|schema\.sql)$">
+    Order allow,deny
+    Deny from all
+  </FilesMatch>
+</IfModule>

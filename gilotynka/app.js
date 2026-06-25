@@ -1,33 +1,42 @@
 // ═══════════════════════════════════════════════════════════════
-//  GILOTYNKA 🪓 — logika aplikacji (Supabase backend + role)
-//  Zapis: Postgres (Supabase) zamiast localStorage/Google Sheets.
-//  Synchronizacja: realtime (zmiany widać na żywo u wszystkich).
+//  GILOTYNKA 🪓 — logika aplikacji (backend PHP + MySQL na kei.pl)
+//  Zapis: REST do api/api.php. Synchronizacja: odświeżanie co kilka s.
 //  Role: 'supervisor' (nadzorca) tworzy/edytuje, 'worker' oznacza postęp.
+//  Ścieżki WZGLĘDNE — działa też w podkatalogu (np. /gilotynka/).
 // ═══════════════════════════════════════════════════════════════
 
 const $ = id => document.getElementById(id);
-const today = () => new Date().toISOString().slice(0, 10);
 const esc = s => String(s == null ? '' : s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
-// ─── Klient Supabase ───────────────────────────────────────────
-if (!window.CONFIG || !window.CONFIG.url || window.CONFIG.url.includes('TWOJ-PROJEKT')) {
-  alert('Brak konfiguracji! Skopiuj config.example.js → config.js i wpisz dane Supabase.');
+// ─── Klient API ────────────────────────────────────────────────
+const API = 'api/api.php';
+async function api(action, data, method) {
+  const opts = { method: method || (data ? 'POST' : 'GET'), headers: {} };
+  if (data) {
+    opts.headers['Content-Type'] = 'application/json';
+    opts.headers['X-Requested-With'] = 'gilotynka';   // anty-CSRF
+    opts.body = JSON.stringify(data);
+  }
+  const res = await fetch(API + '?action=' + action, opts);
+  let j = {};
+  try { j = await res.json(); } catch {}
+  if (!res.ok) throw new Error(j.error || ('Błąd ' + res.status));
+  return j;
 }
-const sb = window.supabase.createClient(window.CONFIG.url, window.CONFIG.anonKey);
 
 // ─── Stan aplikacji ────────────────────────────────────────────
 const STATE = {
   tasks: [],         // [{id,name,t,p,note,status,createdBy,completedBy,completedDate}]
   profiles: {},      // id -> {name, role}
-  me: null,          // {id, email}
-  role: 'worker',    // 'supervisor' | 'worker'
+  me: null,          // {id, email, name, role}
+  role: 'worker',
   cur: 'a',
 };
-let _rtChannel = null;
+let _poll = null;
 
-// ═══ THEME ═══ (motyw może zostać lokalnie — to tylko wygląd)
+// ═══ THEME ═══ (wygląd może zostać lokalnie)
 let theme = (() => { try { return localStorage.getItem('gilo_th') || 'dark'; } catch { return 'dark'; } })();
 (() => { document.documentElement.setAttribute('data-theme', theme); const b = $('thBtn'); if (b) b.textContent = theme === 'dark' ? '🌙' : '☀️'; })();
 function toggleTheme() {
@@ -72,7 +81,6 @@ function stBadge(st){
   if(st==='nie_potrzeby') return'<span class="b st-wait">⊘ pominięte</span>';
   return'<span class="b st-done">✓ ukończone</span>';
 }
-// kolor inicjału z uuid (stabilny)
 function hueOf(id){let h=0;const s=String(id||'');for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))%360;return h;}
 function nameOf(id){const p=STATE.profiles[id];return p?p.name:'?';}
 function initialOf(id){const n=nameOf(id);return (n[0]||'?').toUpperCase();}
@@ -82,7 +90,7 @@ function whoBadge(id){
   return`<span title="${esc(nameOf(id))}" style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:10px;color:#fff;background:hsl(${hue} 45% 45%)">${esc(initialOf(id))}</span>`;
 }
 
-// ═══ BADGES (liczniki w zakładkach) ═══
+// ═══ BADGES ═══
 function updateBadges(){
   const inM=STATE.tasks.filter(t=>t.status==='w_realizacji').length;
   const doneAll=STATE.tasks.filter(t=>t.status==='ukonczone').length;
@@ -90,23 +98,24 @@ function updateBadges(){
   const bu=$('badge-u');if(bu){bu.textContent=doneAll;bu.classList.toggle('h',doneAll===0);}
 }
 
+const isSup = () => STATE.role==='supervisor';
+
 // ═══ ROUTING ═══
 function go(r){
-  if(STATE.role==='worker' && r==='a') r='m';   // wykonawca nie ma zakładki Zadania
+  if(!isSup() && (r==='a'||r==='k')) r='m';   // wykonawca: brak Zadań i Kont
   STATE.cur=r;
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
   $('v-'+r).classList.add('on');
-  ['m','a','u'].forEach(x=>$('tab-'+x).classList.toggle('on',x===r));
+  ['m','a','u','k'].forEach(x=>{const t=$('tab-'+x);if(t)t.classList.toggle('on',x===r);});
   renderCur();
 }
 function renderCur(){
   if(STATE.cur==='m') renderM();
   else if(STATE.cur==='a') renderA();
   else if(STATE.cur==='u') renderU();
+  else if(STATE.cur==='k') loadUsers().then(()=>{ if(STATE.cur==='k') renderK(); });
   updateBadges();
 }
-
-const isSup = () => STATE.role==='supervisor';
 
 // ═══ TAB 1: MOJE ZADANIA ═══
 function renderM(){
@@ -118,7 +127,6 @@ function renderM(){
     $('m-list').innerHTML=`<div class="empty"><div class="ei">🪓</div>Brak zadań na dziś.<br><span style="font-size:11px;color:var(--bd2)">${isSup()?'Idź do <strong style="color:var(--ac)">Zadania</strong> i kliknij <strong style="color:var(--bl)">▶ Przypisz</strong>.':'Nadzorca przypisze Ci zadania.'}</span></div>`;
     return;
   }
-
   $('m-list').innerHTML=mine.map(t=>{
     const isDone=t.status==='ukonczone';
     const isSkip=t.status==='nie_potrzeby';
@@ -130,11 +138,11 @@ function renderM(){
       ${isSkip?'<span class="b" style="border-color:var(--mu);color:var(--mu);white-space:nowrap">⊘ pominięte</span>':''}
       <div style="display:flex;gap:4px;align-items:center;flex-shrink:0">
         ${isDimmed
-          ?`<button class="btn sm" onclick="setStatus('${t.id}','${t.t==='dc'?'w_realizacji':'oczekiwanie'}')">↩</button>`
-          :`<button class="btn ok" style="padding:3px 9px;font-size:10px;white-space:nowrap" onclick="setStatus('${t.id}','ukonczone')">✓ Ukończono</button>
-            ${t.t==='dc'?`<button class="btn sm" onclick="setStatus('${t.id}','nie_potrzeby')" style="border-color:var(--mu);color:var(--mu);white-space:nowrap" title="Nie ma potrzeby">⊘</button>`:''}`}
-        ${isSup()?`<button class="ibtn e" onclick="openEd('${t.id}')" title="Edytuj">✏️</button>
-        <button class="ibtn" onclick="delTask('${t.id}')" title="Usuń">🗑️</button>`:''}
+          ?`<button class="btn sm" onclick="setStatus(${t.id},'${t.t==='dc'?'w_realizacji':'oczekiwanie'}')">↩</button>`
+          :`<button class="btn ok" style="padding:3px 9px;font-size:10px;white-space:nowrap" onclick="setStatus(${t.id},'ukonczone')">✓ Ukończono</button>
+            ${t.t==='dc'?`<button class="btn sm" onclick="setStatus(${t.id},'nie_potrzeby')" style="border-color:var(--mu);color:var(--mu);white-space:nowrap" title="Nie ma potrzeby">⊘</button>`:''}`}
+        ${isSup()?`<button class="ibtn e" onclick="openEd(${t.id})" title="Edytuj">✏️</button>
+        <button class="ibtn" onclick="delTask(${t.id})" title="Usuń">🗑️</button>`:''}
       </div>
     </div>`;
   }).join('');
@@ -161,30 +169,21 @@ function clearForm(){$('a-nw-n').value='';$('a-nw-note').value='';}
 async function addTask(){
   const name=$('a-nw-n').value.trim();
   if(!name){alert('Wpisz nazwę zadania!');return;}
-  const p=NW.t==='dc'?'dc':String(NW.p);
-  const status=NW.t==='dc'?'w_realizacji':'oczekiwanie';
   gsStatus('⏳ Zapisuję...');
-  const {error}=await sb.from('tasks').insert({
-    name, type:NW.t, priority:p, note:$('a-nw-note').value.trim(),
-    status, created_by:STATE.me.id
-  });
-  if(error){gsStatus('⚠ '+error.message);return;}
-  gsStatus('✓ Dodano');
-  clearForm();
-  const wrap=$('add-form-wrap'); if(wrap&&!wrap.classList.contains('h')) toggleForm();
-  await reload();
+  try{
+    await api('task_create',{name,type:NW.t,priority:NW.p,note:$('a-nw-note').value.trim()});
+    gsStatus('✓ Dodano');
+    clearForm();
+    const wrap=$('add-form-wrap'); if(wrap&&!wrap.classList.contains('h')) toggleForm();
+    await reload();
+  }catch(e){gsStatus('⚠ '+e.message);}
 }
 
-// Zmiana statusu (oba role) — przez bezpieczną funkcję RPC
 async function setStatus(id,status){
   gsStatus('⏳ Zapisuję...');
-  const {error}=await sb.rpc('set_task_status',{p_id:id,p_status:status});
-  if(error){gsStatus('⚠ '+error.message);return;}
-  gsStatus('✓ Zapisano');
-  await reload();
+  try{ await api('task_status',{id,status}); gsStatus('✓ Zapisano'); await reload(); }
+  catch(e){gsStatus('⚠ '+e.message);}
 }
-
-// Przełącznik przypisania (nadzorca): oczekiwanie <-> w_realizacji
 function assignTask(id){
   const t=STATE.tasks.find(x=>x.id===id);
   if(!t||t.status==='ukonczone') return;
@@ -198,10 +197,8 @@ function delTask(id){
   if(!t) return;
   showConfirm(`Usunąć zlecenie:<br><strong>${esc(t.name)}</strong>?`,async()=>{
     gsStatus('⏳ Usuwam...');
-    const {error}=await sb.from('tasks').delete().eq('id',id);
-    if(error){gsStatus('⚠ '+error.message);return;}
-    gsStatus('✓ Usunięto');
-    await reload();
+    try{ await api('task_delete',{id}); gsStatus('✓ Usunięto'); await reload(); }
+    catch(e){gsStatus('⚠ '+e.message);}
   });
 }
 
@@ -213,7 +210,6 @@ function openEd(id){
   $('ed-n').value=t.name;
   $('ed-p').value=t.p==='dc'?'1':String(t.p);
   $('ed-t').value=t.t;
-  // lista zlecających = nadzorcy
   const sups=Object.entries(STATE.profiles).filter(([,p])=>p.role==='supervisor');
   $('ed-who').innerHTML=sups.map(([id,p])=>`<option value="${id}">${esc(p.name)}</option>`).join('')||`<option value="${STATE.me.id}">${esc(nameOf(STATE.me.id))}</option>`;
   $('ed-who').value=t.createdBy||STATE.me.id;
@@ -226,20 +222,20 @@ async function saveEd(){
   const t=STATE.tasks.find(x=>x.id===edId);
   if(!t){closeEd();return;}
   const newT=$('ed-t').value;
-  const patch={
-    name:$('ed-n').value.trim()||t.name,
-    type:newT,
-    priority:newT==='dc'?'dc':String(parseInt($('ed-p').value)||1),
-    created_by:$('ed-who').value,
-    note:$('ed-note').value.trim(),
-  };
-  if(newT==='dc'&&t.status==='oczekiwanie') patch.status='w_realizacji';
   gsStatus('⏳ Zapisuję...');
-  const {error}=await sb.from('tasks').update(patch).eq('id',edId);
-  if(error){gsStatus('⚠ '+error.message);return;}
-  gsStatus('✓ Zapisano');
-  closeEd();
-  await reload();
+  try{
+    await api('task_update',{
+      id:edId,
+      name:$('ed-n').value.trim()||t.name,
+      type:newT,
+      priority:parseInt($('ed-p').value)||1,
+      created_by:parseInt($('ed-who').value)||null,
+      note:$('ed-note').value.trim(),
+    });
+    gsStatus('✓ Zapisano');
+    closeEd();
+    await reload();
+  }catch(e){gsStatus('⚠ '+e.message);}
 }
 
 let aState={sort:'prio',sortDir:1,fType:'all',fPrio:'all'};
@@ -291,11 +287,11 @@ function renderA(){
       <td>${stBadge(t.status)}</td>
       <td>
         <div style="display:flex;gap:4px;justify-content:flex-end;align-items:center;flex-wrap:wrap">
-          ${t.status==='oczekiwanie'?`<button class="btn sm bl" onclick="assignTask('${t.id}')">▶ Przypisz</button>`:''}
-          ${isInProg?`<button class="btn sm" onclick="assignTask('${t.id}')" style="border-color:rgba(91,155,212,.5);color:var(--bl);background:rgba(91,155,212,.08)">🔄 w realizacji ×</button>`:''}
-          ${isDone?`<button class="btn sm" onclick="setStatus('${t.id}','${t.t==='dc'?'w_realizacji':'oczekiwanie'}')">↩ Przywróć</button>`:''}
-          <button class="ibtn e" onclick="openEd('${t.id}')" title="Edytuj">✏️</button>
-          <button class="ibtn" onclick="delTask('${t.id}')" title="Usuń">🗑️</button>
+          ${t.status==='oczekiwanie'?`<button class="btn sm bl" onclick="assignTask(${t.id})">▶ Przypisz</button>`:''}
+          ${isInProg?`<button class="btn sm" onclick="assignTask(${t.id})" style="border-color:rgba(91,155,212,.5);color:var(--bl);background:rgba(91,155,212,.08)">🔄 w realizacji ×</button>`:''}
+          ${isDone?`<button class="btn sm" onclick="setStatus(${t.id},'${t.t==='dc'?'w_realizacji':'oczekiwanie'}')">↩ Przywróć</button>`:''}
+          <button class="ibtn e" onclick="openEd(${t.id})" title="Edytuj">✏️</button>
+          <button class="ibtn" onclick="delTask(${t.id})" title="Usuń">🗑️</button>
         </div>
       </td>
     </tr>`;
@@ -325,7 +321,7 @@ function aFilter(kind,btn){
 }
 
 // ═══ TAB 3: UKOŃCZONO ═══
-const uActive={};   // id zlecającego -> bool
+const uActive={};
 function buildUFilter(){
   const sups=Object.entries(STATE.profiles).filter(([,p])=>p.role==='supervisor');
   sups.forEach(([id])=>{ if(uActive[id]===undefined) uActive[id]=true; });
@@ -339,7 +335,7 @@ function uFilter(id){
 }
 function renderU(){
   buildUFilter();
-  const activeWho=Object.entries(uActive).filter(([,v])=>v).map(([k])=>k);
+  const activeWho=Object.entries(uActive).filter(([,v])=>v).map(([k])=>+k);
   const done=STATE.tasks
     .filter(t=>t.status==='ukonczone'&&(!t.createdBy||activeWho.includes(t.createdBy)))
     .sort((a,b)=>(b.completedDate||'').localeCompare(a.completedDate||''));
@@ -363,48 +359,95 @@ function renderU(){
             <div style="display:flex;gap:5px;margin-top:4px;flex-wrap:wrap;align-items:center">${tBadge(t.t)}${pBadge(t.p)}${whoBadge(t.createdBy)}${t.completedBy?`<span style="font-size:9px;color:var(--mu)">wyk.: ${esc(nameOf(t.completedBy))}</span>`:''}</div>
           </div>
           <div style="display:flex;gap:5px;align-items:center">
-            <button class="btn sm" onclick="setStatus('${t.id}','${t.t==='dc'?'w_realizacji':'oczekiwanie'}')">↩ Przywróć</button>
-            ${isSup()?`<button class="ibtn e" onclick="openEd('${t.id}')" title="Edytuj">✏️</button>
-            <button class="ibtn" onclick="delTask('${t.id}')" title="Usuń">🗑️</button>`:''}
+            <button class="btn sm" onclick="setStatus(${t.id},'${t.t==='dc'?'w_realizacji':'oczekiwanie'}')">↩ Przywróć</button>
+            ${isSup()?`<button class="ibtn e" onclick="openEd(${t.id})" title="Edytuj">✏️</button>
+            <button class="ibtn" onclick="delTask(${t.id})" title="Usuń">🗑️</button>`:''}
           </div>
         </div>`).join('')}
     </div>`).join('');
 }
 
-// ═══ ŁADOWANIE DANYCH ═══
-function mapTask(r){
-  return {
-    id:r.id, name:r.name, t:r.type,
-    p:r.priority==='dc'?'dc':(/^\d+$/.test(r.priority)?+r.priority:r.priority),
-    note:r.note||'', status:r.status,
-    createdBy:r.created_by, completedBy:r.completed_by, completedDate:r.completed_date,
-  };
+// ═══ TAB 4: KONTA (tylko nadzorca) ═══
+function toggleUserForm(){
+  const w=$('k-form-wrap'),b=$('uf-toggle');
+  const open=w.classList.contains('h');
+  w.classList.toggle('h',!open);
+  b.textContent=open?'▲ Zwiń':'＋ Dodaj konto';
+  b.className=open?'btn wn':'btn ok';
 }
-async function loadProfiles(){
-  const {data,error}=await sb.from('profiles').select('id,display_name,role');
-  if(error){console.error(error);return;}
-  STATE.profiles={};
-  (data||[]).forEach(p=>{STATE.profiles[p.id]={name:p.display_name||'?',role:p.role};});
+async function addUser(){
+  const email=$('k-email').value.trim();
+  const pass=$('k-pass').value;
+  if(!email||pass.length<6){alert('Podaj e-mail i hasło (min. 6 znaków).');return;}
+  gsStatus('⏳ Tworzę konto...');
+  try{
+    await api('user_create',{email,name:$('k-name').value.trim(),role:$('k-role').value,password:pass});
+    gsStatus('✓ Utworzono');
+    $('k-email').value='';$('k-name').value='';$('k-pass').value='';
+    toggleUserForm();
+    await loadUsers(); renderK();
+  }catch(e){gsStatus('⚠ '+e.message);}
 }
-async function loadTasks(){
-  const {data,error}=await sb.from('tasks').select('*');
-  if(error){gsStatus('⚠ '+error.message);return;}
-  STATE.tasks=(data||[]).map(mapTask);
+async function toggleRole(id,role){
+  const next=role==='supervisor'?'worker':'supervisor';
+  gsStatus('⏳ Zapisuję...');
+  try{ await api('user_update',{id,role:next}); gsStatus('✓ Zapisano'); await loadUsers(); renderK(); }
+  catch(e){gsStatus('⚠ '+e.message);}
 }
-async function reload(){
-  await loadTasks();
-  renderCur();
+async function resetPass(id){
+  const p=prompt('Nowe hasło (min. 6 znaków):');
+  if(p===null) return;
+  if(p.length<6){alert('Za krótkie hasło.');return;}
+  gsStatus('⏳ Zapisuję...');
+  try{ await api('user_update',{id,password:p}); gsStatus('✓ Zmieniono hasło'); }
+  catch(e){gsStatus('⚠ '+e.message);}
+}
+function delUser(id){
+  showConfirm(`Usunąć konto:<br><strong>${esc(nameOf(id))}</strong>?`,async()=>{
+    gsStatus('⏳ Usuwam...');
+    try{ await api('user_delete',{id}); gsStatus('✓ Usunięto'); await loadUsers(); renderK(); }
+    catch(e){gsStatus('⚠ '+e.message);}
+  });
+}
+function renderK(){
+  const users=Object.entries(STATE.profiles).map(([id,p])=>({id:+id,...p}))
+    .sort((a,b)=>a.role.localeCompare(b.role)||a.name.localeCompare(b.name,'pl'));
+  $('k-body').innerHTML=users.map(u=>`
+    <tr>
+      <td style="display:flex;align-items:center;gap:8px">${whoBadge(u.id)}<span style="font-size:12px">${esc(u.name)}</span>${u.id===STATE.me.id?'<span style="font-size:9px;color:var(--mu)">(Ty)</span>':''}</td>
+      <td style="font-size:11px;color:var(--mu)">${esc(u.email||'')}</td>
+      <td><span class="b ${u.role==='supervisor'?'b-dc':'b-cy'}">${u.role==='supervisor'?'nadzorca':'wykonawca'}</span></td>
+      <td>
+        <div style="display:flex;gap:4px;justify-content:flex-end;flex-wrap:wrap">
+          <button class="btn sm" onclick="toggleRole(${u.id},'${u.role}')">${u.role==='supervisor'?'→ wykonawca':'→ nadzorca'}</button>
+          <button class="btn sm" onclick="resetPass(${u.id})">🔑 hasło</button>
+          ${u.id!==STATE.me.id?`<button class="ibtn" onclick="delUser(${u.id})" title="Usuń">🗑️</button>`:''}
+        </div>
+      </td>
+    </tr>`).join('');
 }
 
-// ═══ REALTIME ═══
-function subscribeRealtime(){
-  if(_rtChannel) sb.removeChannel(_rtChannel);
-  _rtChannel=sb.channel('tasks-rt')
-    .on('postgres_changes',{event:'*',schema:'public',table:'tasks'},async()=>{
-      await loadTasks();
-      renderCur();
-    })
-    .subscribe();
+// ═══ ŁADOWANIE DANYCH ═══
+function setProfiles(users){
+  STATE.profiles={};
+  (users||[]).forEach(u=>{STATE.profiles[u.id]={name:u.name||'?',role:u.role,email:u.email};});
+}
+async function loadUsers(){
+  try{ const j=await api('users'); setProfiles(j.users); }catch(e){/* worker nie ma dostępu */}
+}
+async function loadTasks(){
+  const j=await api('tasks');
+  STATE.tasks=j.tasks||[];
+}
+async function reload(){ await loadTasks(); renderCur(); }
+
+// odświeżanie w tle (zamiast realtime)
+function startPolling(){
+  if(_poll) clearInterval(_poll);
+  _poll=setInterval(async()=>{
+    if(document.hidden) return;
+    try{ await loadTasks(); renderCur(); gsStatus('✓ Zsynchronizowano'); }catch(e){}
+  },6000);
 }
 
 // ═══ AUTH ═══
@@ -414,52 +457,51 @@ async function doLogin(){
   $('lg-err').textContent='';
   if(!email||!pass){$('lg-err').textContent='Podaj e-mail i hasło.';return;}
   $('lg-btn').disabled=true;$('lg-btn').textContent='Loguję...';
-  const {error}=await sb.auth.signInWithPassword({email,password:pass});
-  $('lg-btn').disabled=false;$('lg-btn').textContent='Zaloguj';
-  if(error){
-    $('lg-err').textContent = error.message.includes('Invalid')?'Błędny e-mail lub hasło.':error.message;
-    return;
+  try{
+    const j=await api('login',{email,password:pass});
+    await enterApp(j.user);
+  }catch(e){
+    $('lg-err').textContent=e.message;
+  }finally{
+    $('lg-btn').disabled=false;$('lg-btn').textContent='Zaloguj';
   }
-  // onAuthStateChange zajmie się resztą
 }
 async function doLogout(){
-  await sb.auth.signOut();
+  try{ await api('logout',{}); }catch{}
   location.reload();
 }
 
-async function enterApp(session){
-  STATE.me={id:session.user.id, email:session.user.email};
-  await loadProfiles();
-  // jeśli z jakiegoś powodu brak profilu — przyjmij worker
-  STATE.role=(STATE.profiles[STATE.me.id]||{}).role||'worker';
-  const myName=nameOf(STATE.me.id)!=='?'?nameOf(STATE.me.id):STATE.me.email;
-  $('me-name').textContent=myName;
+async function enterApp(user){
+  STATE.me=user;
+  STATE.role=user.role;
+  // wczytaj dane startowe (użytkownicy + zadania jednym żądaniem)
+  try{
+    const j=await api('bootstrap');
+    setProfiles(j.users);
+    STATE.tasks=j.tasks||[];
+  }catch(e){ gsStatus('⚠ '+e.message); }
+
+  $('me-name').textContent=user.name||user.email;
   const rp=$('me-role');
   rp.textContent=isSup()?'nadzorca':'wykonawca';
   rp.className='role-pill '+(isSup()?'sup':'wrk');
 
-  // widoczność zakładki "Zadania" tylko dla nadzorcy
   $('tab-a').classList.toggle('h',!isSup());
+  $('tab-k').classList.toggle('h',!isSup());
 
   $('login').classList.add('h');
   $('app').classList.remove('h');
 
-  await loadTasks();
-  subscribeRealtime();
   go(isSup()?'a':'m');
+  startPolling();
   gsStatus('✓ Połączono');
 }
 
 // ═══ INIT ═══
 (async()=>{
-  // reaguj na zmiany sesji (login/logout/refresh tokena)
-  sb.auth.onAuthStateChange((event,session)=>{
-    if(session && $('app').classList.contains('h')){
-      enterApp(session);
-    }
-  });
-  const {data:{session}}=await sb.auth.getSession();
-  if(session) await enterApp(session);
-  // Enter w polu hasła = login
   $('lg-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+  try{
+    const j=await api('me');
+    if(j.user) await enterApp(j.user);
+  }catch(e){/* nie zalogowany — pokaż ekran logowania */}
 })();

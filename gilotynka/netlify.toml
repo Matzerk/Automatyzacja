@@ -1,5 +1,0 @@
-# Wdrożenie na Netlify — serwujemy katalog gilotynka/ jako stronę statyczną.
-# Jeśli łączysz całe repo, ustaw "Base directory" = gilotynka w panelu Netlify.
-[build]
-  publish = "."
-  command = ""

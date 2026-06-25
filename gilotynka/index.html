@@ -145,6 +145,7 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tx)
     <div class="tab" id="tab-m" onclick="go('m')">🧒 Moje zadania <span class="rbadge h" id="badge-m" style="background:var(--bl)">0</span></div>
     <div class="tab on" id="tab-a" onclick="go('a')">📋 Zadania</div>
     <div class="tab" id="tab-u" onclick="go('u')">✅ Ukończono <span class="rbadge h" id="badge-u" style="background:var(--ok)">0</span></div>
+    <div class="tab h" id="tab-k" onclick="go('k')">👤 Konta</div>
   </div>
 </div>
 
@@ -281,6 +282,43 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tx)
   <div id="u-list"></div>
 </div>
 
+<!-- TAB 4: KONTA (tylko nadzorca) -->
+<div class="view" id="v-k">
+  <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:11px 14px;margin-bottom:12px">
+    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:var(--ac)">Konta użytkowników</div>
+    <div style="font-size:10px;color:var(--mu)">Nadzorcy zarządzają zleceniami, wykonawca tylko odhacza zadania</div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+    <button class="btn ok" onclick="toggleUserForm()" id="uf-toggle">＋ Dodaj konto</button>
+  </div>
+
+  <div id="k-form-wrap" class="h">
+  <div class="aform" style="margin-bottom:10px">
+    <div class="fg">
+      <div class="ff"><div class="fl">E-mail *</div><input class="fi" id="k-email" type="email" autocomplete="off" placeholder="ktos@example.com"></div>
+      <div class="ff"><div class="fl">Imię / nazwa</div><input class="fi" id="k-name" autocomplete="off" placeholder="np. Tata"></div>
+      <div class="ff"><div class="fl">Rola</div>
+        <select class="fsel" id="k-role">
+          <option value="worker">Wykonawca</option>
+          <option value="supervisor">Nadzorca</option>
+        </select>
+      </div>
+      <div class="ff"><div class="fl">Hasło * (min. 6)</div><input class="fi" id="k-pass" type="text" autocomplete="off" placeholder="hasło"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn ok" onclick="addUser()">＋ Utwórz konto</button>
+      <button class="btn" onclick="toggleUserForm()" style="margin-left:auto">▲ Zwiń</button>
+    </div>
+  </div>
+  </div>
+
+  <div class="tbl"><table class="t">
+    <thead><tr><th>Użytkownik</th><th>E-mail</th><th>Rola</th><th style="text-align:right">Akcje</th></tr></thead>
+    <tbody id="k-body"></tbody>
+  </table></div>
+</div>
+
 </div><!-- /pg -->
 </div><!-- /app -->
 
@@ -326,8 +364,6 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tx)
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="config.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
