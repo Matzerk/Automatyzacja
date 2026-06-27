@@ -37,6 +37,7 @@ function mapTpl(array $r): array {
     'p'         => ctype_digit((string)$r['priority']) ? (int)$r['priority'] : $r['priority'],
     'note'      => $r['note'] ?? '',
     'createdBy' => $r['created_by'] !== null ? (int)$r['created_by'] : null,
+    'ownerId'   => $r['owner_id']   !== null ? (int)$r['owner_id']   : null,
   ];
 }
 
@@ -228,6 +229,30 @@ switch ($action) {
     jsonOut(['ok' => true]);
   }
 
+  // ── LOG: „odhacz zrobione dziś" — tworzy od razu ukończone zadanie z dzisiejszą datą ──
+  case 'task_log': {
+    $u = requireAuth();
+    $b = body();
+    $name = trim($b['name'] ?? '');
+    if ($name === '') jsonOut(['error' => 'Pusta nazwa'], 400);
+    $type = in_array($b['type'] ?? 'once', ['once','dc','cyc'], true) ? $b['type'] : 'once';
+    $prio = $type === 'dc' ? 'dc' : (string)(int)($b['priority'] ?? 1);
+    $hours = parseHours($b['hours'] ?? null);
+    // właściciel (kto wykonał): nadzorca może wskazać; wykonawca = on sam
+    if ($u['role'] === 'supervisor') {
+      $owner = isset($b['owner_id']) && $b['owner_id'] !== null && $b['owner_id'] !== ''
+             ? (int)$b['owner_id'] : (int)$u['id'];
+    } else {
+      $owner = (int)$u['id'];
+    }
+    $st = db()->prepare(
+      "INSERT INTO tasks (name,type,priority,note,status,owner_id,hours,created_by,completed_date,completed_by)
+       VALUES (?,?,?,?,'ukonczone',?,?,?,CURDATE(),?)"
+    );
+    $st->execute([$name, $type, $prio, trim($b['note'] ?? ''), $owner, $hours, $u['id'], $owner]);
+    jsonOut(['ok' => true, 'id' => (int)db()->lastInsertId()]);
+  }
+
   // ── KONTA: zarządzanie użytkownikami (tylko nadzorca) ──────
   case 'user_create': {
     requireSupervisor();
@@ -283,10 +308,16 @@ switch ($action) {
     ], $rows)]);
   }
 
-  // ── SZABLONY („pula"): wspólna biblioteka, każdy widzi i dodaje ────
+  // ── LISTY ZADAŃ (szablony): osobne per pracownik; owner_id NULL = wspólne ────
   case 'templates': {
-    requireAuth();
-    $rows = db()->query('SELECT * FROM templates ORDER BY name')->fetchAll();
+    $u = requireAuth();
+    if ($u['role'] === 'supervisor') {
+      $rows = db()->query('SELECT * FROM templates ORDER BY name')->fetchAll();
+    } else {
+      $st = db()->prepare('SELECT * FROM templates WHERE owner_id = ? OR owner_id IS NULL ORDER BY name');
+      $st->execute([$u['id']]);
+      $rows = $st->fetchAll();
+    }
     jsonOut(['templates' => array_map('mapTpl', $rows)]);
   }
 
@@ -297,8 +328,15 @@ switch ($action) {
     if ($name === '') jsonOut(['error' => 'Pusta nazwa'], 400);
     $type = in_array($b['type'] ?? 'once', ['once','dc','cyc'], true) ? $b['type'] : 'once';
     $prio = $type === 'dc' ? 'dc' : (string)(int)($b['priority'] ?? 1);
-    $st = db()->prepare('INSERT INTO templates (name,type,priority,note,created_by) VALUES (?,?,?,?,?)');
-    $st->execute([$name, $type, $prio, trim($b['note'] ?? ''), $u['id']]);
+    // właściciel listy: nadzorca wskazuje pracownika (lub NULL = wspólne); wykonawca = on sam
+    if ($u['role'] === 'supervisor') {
+      $owner = isset($b['owner_id']) && $b['owner_id'] !== null && $b['owner_id'] !== ''
+             ? (int)$b['owner_id'] : null;
+    } else {
+      $owner = (int)$u['id'];
+    }
+    $st = db()->prepare('INSERT INTO templates (name,type,priority,note,created_by,owner_id) VALUES (?,?,?,?,?,?)');
+    $st->execute([$name, $type, $prio, trim($b['note'] ?? ''), $u['id'], $owner]);
     jsonOut(['ok' => true, 'id' => (int)db()->lastInsertId()]);
   }
 
@@ -306,12 +344,13 @@ switch ($action) {
     $u = requireAuth();
     $id = (int)(body()['id'] ?? 0);
     if (!$id) jsonOut(['error' => 'Brak id'], 400);
-    $st = db()->prepare('SELECT created_by FROM templates WHERE id = ?');
+    $st = db()->prepare('SELECT owner_id FROM templates WHERE id = ?');
     $st->execute([$id]);
     $r = $st->fetch();
-    if (!$r) jsonOut(['error' => 'Nie ma takiego szablonu'], 404);
-    if ($u['role'] !== 'supervisor' && (int)$r['created_by'] !== (int)$u['id']) {
-      jsonOut(['error' => 'Możesz usuwać tylko swoje szablony.'], 403);
+    if (!$r) jsonOut(['error' => 'Nie ma takiego zadania'], 404);
+    // wykonawca usuwa tylko zadania ze swojej listy; nadzorca dowolne
+    if ($u['role'] !== 'supervisor' && (int)$r['owner_id'] !== (int)$u['id']) {
+      jsonOut(['error' => 'Możesz usuwać tylko zadania ze swojej listy.'], 403);
     }
     db()->prepare('DELETE FROM templates WHERE id = ?')->execute([$id]);
     jsonOut(['ok' => true]);

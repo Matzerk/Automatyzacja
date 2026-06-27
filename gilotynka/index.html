@@ -92,7 +92,21 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tx)
 .role-pill.sup{color:var(--ac);border-color:rgba(212,168,83,.5)}
 .role-pill.wrk{color:var(--bl);border-color:rgba(91,155,212,.5)}
 ::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:3px}
-@media(max-width:650px){.pg{padding:10px 12px}.topbar,.tabs{padding-left:12px;padding-right:12px}.fg{grid-template-columns:1fr}.ff.s2{grid-column:1}}
+/* Board (kolumny per pracownik) */
+.board{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px;align-items:start}
+.panel{background:var(--bg2);border:1px solid var(--bd);border-radius:9px;padding:11px;display:flex;flex-direction:column;gap:6px}
+.panel-solo{max-width:640px}
+.panel-head{display:flex;align-items:center;gap:8px;padding-bottom:7px;border-bottom:1px solid var(--bd)}
+.panel-name{font-family:'Syne',sans-serif;font-weight:800;font-size:14px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.panel-stat{font-size:10px;color:var(--mu);white-space:nowrap}
+.panel-sec{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mu);margin-top:5px}
+.cat-row{display:flex;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--bd);border-radius:6px;padding:4px 7px}
+.cat-name{flex:1;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.cat-add{display:flex;gap:5px;margin-top:2px}
+.cat-add .fi{padding:5px 8px;font-size:11px}
+.hbox{width:54px!important;padding:4px 6px!important;font-size:11px!important;text-align:center}
+.col-empty{font-size:10px;color:var(--mu);text-align:center;padding:8px}
+@media(max-width:650px){.pg{padding:10px 12px}.topbar,.tabs{padding-left:12px;padding-right:12px}.fg{grid-template-columns:1fr}.ff.s2{grid-column:1}.board{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -135,207 +149,41 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tx)
       </div>
     </div>
     <div style="display:flex;gap:10px;align-items:center">
-      <select class="fsel h" id="viewAs" onchange="setViewAs(this.value)" title="Czyje zadania oglądasz" style="width:auto;padding:4px 8px;font-size:11px"></select>
       <span id="gs-status" style="font-size:10px;color:var(--mu)"></span>
       <div class="whoami"><span id="me-name"></span><span class="role-pill" id="me-role"></span></div>
+      <button class="btn sm h" id="cfgBtn" onclick="go('k')" title="Konta pracowników">⚙ Konta</button>
       <button class="btn sm" id="thBtn" onclick="toggleTheme()">🌙</button>
       <button class="btn sm wn" onclick="doLogout()" title="Wyloguj">Wyloguj</button>
     </div>
   </div>
   <div class="tabs">
-    <div class="tab" id="tab-m" onclick="go('m')">🧒 Moje zadania <span class="rbadge h" id="badge-m" style="background:var(--bl)">0</span></div>
     <div class="tab on" id="tab-a" onclick="go('a')">📋 Zadania</div>
-    <div class="tab" id="tab-u" onclick="go('u')">✅ Ukończono <span class="rbadge h" id="badge-u" style="background:var(--ok)">0</span></div>
-    <div class="tab h" id="tab-k" onclick="go('k')">👤 Konta</div>
+    <div class="tab" id="tab-u" onclick="go('u')">📊 Podsumowanie dnia</div>
   </div>
 </div>
 
 <div class="pg">
 
-<!-- TAB 1: MOJE ZADANIA -->
-<div class="view" id="v-m">
-  <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:11px 14px;margin-bottom:14px;display:flex;align-items:center;gap:12px">
-    <div>
-      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:var(--bl)">Moje zadania na dziś</div>
-      <div style="font-size:10px;color:var(--mu)">Zadania do zrobienia — kliknij ✓ Ukończono gdy skończysz</div>
-    </div>
-    <span style="margin-left:auto;font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:var(--bl)" id="m-count">0</span>
-  </div>
-
-  <!-- Dodawanie własnego zadania (wykonawca) -->
-  <div id="wm-add" class="h">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-      <button class="btn ok" onclick="toggleWForm()" id="wm-toggle">＋ Dodaj zadanie</button>
-      <span style="font-size:10px;color:var(--mu)">dorzuć własne zadanie i wpisz godziny</span>
-    </div>
-    <div id="wm-form-wrap" class="h">
-      <div class="aform" style="margin-bottom:10px">
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
-          <select class="fsel" id="wm-tpl" onchange="tplPick('wm',this.value)" style="flex:1;min-width:150px"></select>
-          <button class="btn" onclick="saveTpl('wm')" title="Zapisz formularz jako szablon">💾 Szablon</button>
-          <button class="btn" onclick="openTpl()" title="Zarządzaj szablonami">📋</button>
-        </div>
-        <div class="fg">
-          <div class="ff s2"><div class="fl">Nazwa zadania *</div>
-            <input class="fi" id="wm-n" list="name-sugg" placeholder="Co robisz / zrobiłeś..." autocomplete="off">
-          </div>
-          <div class="ff"><div class="fl">Priorytet</div>
-            <div class="seg" id="wm-p-seg">
-              <button class="sbtn on" data-v="1" onclick="wmSeg('p',this)">1 Wysoki</button>
-              <button class="sbtn" data-v="2" onclick="wmSeg('p',this)">2 Średni</button>
-              <button class="sbtn" data-v="3" onclick="wmSeg('p',this)">3 Niski</button>
-              <button class="sbtn" data-v="4" onclick="wmSeg('p',this)">4 Kiedyś</button>
-            </div>
-          </div>
-          <div class="ff"><div class="fl">Typ</div>
-            <div class="seg" id="wm-t-seg">
-              <button class="sbtn on2 on" data-v="once" onclick="wmSeg('t',this)">Jednorazowe</button>
-              <button class="sbtn" data-v="dc" onclick="wmSeg('t',this)">✅ Codzienne</button>
-              <button class="sbtn" data-v="cyc" onclick="wmSeg('t',this)">🔄 Cykliczne</button>
-            </div>
-          </div>
-          <div class="ff"><div class="fl">Godziny (opcjonalnie)</div>
-            <input class="fi" id="wm-hours" type="number" min="0" step="0.5" placeholder="np. 2 lub 1.5">
-          </div>
-          <div class="ff s2"><div class="fl">Notatka (opcjonalna)</div>
-            <textarea class="fta" id="wm-note" placeholder="Szczegóły..." style="min-height:38px"></textarea>
-          </div>
-        </div>
-        <div style="display:flex;gap:8px;margin-top:8px">
-          <button class="btn ok" onclick="addTaskWorker()">＋ Dodaj</button>
-          <button class="btn" onclick="toggleWForm()" style="margin-left:auto">▲ Zwiń</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div id="m-list"></div>
-  <datalist id="name-sugg"></datalist>
-</div>
-
-<!-- TAB 2: ZADANIA -->
+<!-- ZAKŁADKA 1: ZADANIA (board per pracownik / checklista) -->
 <div class="view on" id="v-a">
-  <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:11px 14px;margin-bottom:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+  <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:11px 14px;margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
     <div>
-      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:var(--ac)">Wszystkie zlecenia</div>
-      <div style="font-size:10px;color:var(--mu)">Tworzenie i zarządzanie zleceniami</div>
-    </div>
-    <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
-      <span style="font-size:11px;color:var(--mu)">Łącznie:</span>
-      <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:var(--ac)" id="a-total">0</span>
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:var(--ac)" id="board-title">Zadania</div>
+      <div style="font-size:10px;color:var(--mu)" id="board-sub">—</div>
     </div>
   </div>
-
-  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-    <button class="btn ok" onclick="toggleForm()" id="form-toggle-btn">＋ Dodaj zlecenie</button>
-    <span style="font-size:10px;color:var(--mu)" id="form-toggle-hint">kliknij aby rozwinąć formularz</span>
-  </div>
-
-  <div id="add-form-wrap" class="h">
-  <div class="aform" style="margin-bottom:10px">
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
-      <select class="fsel" id="a-nw-tpl" onchange="tplPick('a-nw',this.value)" style="flex:1;min-width:150px"></select>
-      <button class="btn" onclick="saveTpl('a-nw')" title="Zapisz formularz jako szablon">💾 Szablon</button>
-      <button class="btn" onclick="openTpl()" title="Zarządzaj szablonami">📋 Szablony</button>
-    </div>
-    <div class="fg">
-      <div class="ff s2"><div class="fl">Nazwa zadania *</div>
-        <input class="fi" id="a-nw-n" list="name-sugg" placeholder="Opis zadania..." autocomplete="off">
-      </div>
-      <div class="ff"><div class="fl">Przypisz do (wykonawca)</div>
-        <select class="fsel" id="a-nw-owner"></select>
-      </div>
-      <div class="ff"><div class="fl">Godziny (opcjonalnie)</div>
-        <input class="fi" id="a-nw-hours" type="number" min="0" step="0.5" placeholder="np. 2 lub 1.5">
-      </div>
-      <div class="ff"><div class="fl">Priorytet</div>
-        <div class="seg" id="a-nw-p-seg">
-          <button class="sbtn on" data-v="1" onclick="nwSeg('p',this)">1 Wysoki</button>
-          <button class="sbtn" data-v="2" onclick="nwSeg('p',this)">2 Średni</button>
-          <button class="sbtn" data-v="3" onclick="nwSeg('p',this)">3 Niski</button>
-          <button class="sbtn" data-v="4" onclick="nwSeg('p',this)">4 Kiedyś</button>
-        </div>
-      </div>
-      <div class="ff"><div class="fl">Typ</div>
-        <div class="seg" id="a-nw-t-seg">
-          <button class="sbtn on2 on" data-v="once" onclick="nwSeg('t',this)">Jednorazowe</button>
-          <button class="sbtn" data-v="dc" onclick="nwSeg('t',this)">✅ Codzienne</button>
-          <button class="sbtn" data-v="cyc" onclick="nwSeg('t',this)">🔄 Cykliczne</button>
-        </div>
-      </div>
-      <div class="ff s2"><div class="fl">Notatka (opcjonalna)</div>
-        <textarea class="fta" id="a-nw-note" placeholder="Dodatkowe informacje..." style="min-height:38px"></textarea>
-      </div>
-    </div>
-    <div style="display:flex;gap:8px;margin-top:8px">
-      <button class="btn ok" onclick="addTask()">＋ Dodaj</button>
-      <button class="btn" onclick="clearForm()">✕ Wyczyść</button>
-      <button class="btn" onclick="toggleForm()" style="margin-left:auto">▲ Zwiń</button>
-    </div>
-  </div>
-  </div>
-
-  <!-- FILTER / SORT -->
-  <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:12px 14px;margin-bottom:12px;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
-    <div style="display:flex;align-items:center;gap:6px">
-      <span style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mu)">Sortuj</span>
-      <div class="seg" id="a-sort-seg">
-        <button class="sbtn on" data-v="prio" onclick="aSort(this)">Priorytet</button>
-        <button class="sbtn" data-v="type" onclick="aSort(this)">Typ</button>
-        <button class="sbtn" data-v="name" onclick="aSort(this)">Nazwa</button>
-        <button class="sbtn" data-v="who" onclick="aSort(this)">Kto</button>
-        <button class="sbtn" data-v="status" onclick="aSort(this)">Status</button>
-      </div>
-    </div>
-    <div style="display:flex;align-items:center;gap:6px">
-      <span style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mu)">Typ</span>
-      <div class="seg" id="a-ftype-seg">
-        <button class="sbtn on" data-v="all" onclick="aFilter('type',this)">Wszystkie</button>
-        <button class="sbtn" data-v="dc" onclick="aFilter('type',this)">✅ Codzienne</button>
-        <button class="sbtn" data-v="once" onclick="aFilter('type',this)">Jednorazowe</button>
-        <button class="sbtn" data-v="cyc" onclick="aFilter('type',this)">🔄 Cykliczne</button>
-      </div>
-    </div>
-    <div style="display:flex;align-items:center;gap:6px">
-      <span style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mu)">Prio</span>
-      <div class="seg" id="a-fprio-seg">
-        <button class="sbtn on" data-v="all" onclick="aFilter('prio',this)">Wszystkie</button>
-        <button class="sbtn" data-v="dc" onclick="aFilter('prio',this)">Codz.</button>
-        <button class="sbtn" data-v="1" onclick="aFilter('prio',this)">1</button>
-        <button class="sbtn" data-v="2" onclick="aFilter('prio',this)">2</button>
-        <button class="sbtn" data-v="3" onclick="aFilter('prio',this)">3</button>
-        <button class="sbtn" data-v="4" onclick="aFilter('prio',this)">4</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- STATS -->
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-bottom:12px" id="a-stats"></div>
-
-  <!-- TABLE -->
-  <div class="tbl"><table class="t">
-    <thead><tr>
-      <th style="width:12px"></th>
-      <th onclick="aColSort('name')" style="cursor:pointer">Zadanie <span id="a-col-name" style="color:var(--mu)">↕</span></th>
-      <th onclick="aColSort('type')" style="cursor:pointer">Typ <span id="a-col-type" style="color:var(--mu)">↕</span></th>
-      <th onclick="aColSort('prio')" style="cursor:pointer">Priorytet <span id="a-col-prio" style="color:var(--mu)">↕</span></th>
-      <th onclick="aColSort('who')" style="cursor:pointer;text-align:center">Pracownik <span id="a-col-who" style="color:var(--mu)">↕</span></th>
-      <th onclick="aColSort('hours')" style="cursor:pointer;text-align:center">Godziny <span id="a-col-hours" style="color:var(--mu)">↕</span></th>
-      <th onclick="aColSort('status')" style="cursor:pointer">Status <span id="a-col-status" style="color:var(--mu)">↕</span></th>
-      <th style="text-align:right">Akcje</th>
-    </tr></thead>
-    <tbody id="a-body"></tbody>
-  </table></div>
+  <div id="board"></div>
 </div>
 
-<!-- TAB 3: UKOŃCZONO -->
+<!-- ZAKŁADKA 2: PODSUMOWANIE DNIA -->
 <div class="view" id="v-u">
   <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:11px 14px;margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
     <div>
-      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:var(--ok)">Ukończono</div>
-      <div style="font-size:10px;color:var(--mu)">Historia ukończonych zleceń</div>
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:var(--ok)">Podsumowanie dnia</div>
+      <div style="font-size:10px;color:var(--mu)">Historia pracy: co zrobione i ile godzin — wg dnia i pracownika</div>
     </div>
-    <div style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <select class="fsel h" id="u-filter" onchange="setUFilter(this.value)" title="Filtruj po pracowniku" style="width:auto;padding:5px 9px;font-size:11px;margin-left:auto"></select>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <span style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mu)">Suma godzin:</span>
       <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:var(--ac)" id="u-hours">0h</span>
     </div>
@@ -344,11 +192,14 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tx)
   <div id="u-list"></div>
 </div>
 
-<!-- TAB 4: KONTA (tylko nadzorca) -->
+<!-- KONTA (tylko nadzorca, pod ⚙) -->
 <div class="view" id="v-k">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+    <button class="btn sm" onclick="go('a')">← Wróć do zadań</button>
+  </div>
   <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:11px 14px;margin-bottom:12px">
-    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:var(--ac)">Konta użytkowników</div>
-    <div style="font-size:10px;color:var(--mu)">Nadzorcy zarządzają zleceniami, wykonawca tylko odhacza zadania</div>
+    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:var(--ac)">Konta pracowników</div>
+    <div style="font-size:10px;color:var(--mu)">Dodawaj pracowników; każdy ma własną listę zadań i loguje swoje godziny</div>
   </div>
 
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
@@ -429,16 +280,6 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tx)
       <button class="btn" onclick="closeEd()">Anuluj</button>
       <button class="btn ok" onclick="saveEd()">💾 Zapisz</button>
     </div>
-  </div>
-</div>
-
-<!-- TEMPLATES MODAL -->
-<div class="mbg h" id="tmod" onclick="if(event.target===this)closeTpl()">
-  <div class="modal">
-    <h2>📋 Szablony zadań (pula)</h2>
-    <div style="font-size:11px;color:var(--mu);margin-bottom:12px">Wspólna biblioteka. Wybór z listy w formularzu wypełnia pola; własny szablon dodasz przyciskiem „💾 Szablon".</div>
-    <div id="tmod-list"></div>
-    <div class="mbns"><button class="btn" onclick="closeTpl()">Zamknij</button></div>
   </div>
 </div>
 

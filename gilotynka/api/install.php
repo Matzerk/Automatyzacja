@@ -50,6 +50,14 @@ if (!colExists($dbName, 'tasks', 'hours')) {
   db()->exec('ALTER TABLE tasks ADD COLUMN hours DECIMAL(5,1) NULL AFTER owner_id');
   $log[] = '✓ Migracja: dodano kolumnę hours.';
 }
+// owner_id w templates: osobne listy zadań per pracownik
+if (!colExists($dbName, 'templates', 'owner_id')) {
+  db()->exec('ALTER TABLE templates ADD COLUMN owner_id INT NULL AFTER created_by');
+  db()->exec('ALTER TABLE templates ADD INDEX idx_tpl_owner (owner_id)');
+  try { db()->exec('ALTER TABLE templates ADD CONSTRAINT fk_tpl_owner_id FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE'); }
+  catch (Throwable $e) { /* klucz mógł już istnieć */ }
+  $log[] = '✓ Migracja: dodano kolumnę owner_id w templates.';
+}
 
 // 2) Konta
 $created = 0;

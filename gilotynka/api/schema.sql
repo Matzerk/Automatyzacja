@@ -45,6 +45,9 @@ CREATE TABLE IF NOT EXISTS templates (
   priority      VARCHAR(4) NOT NULL DEFAULT '1',
   note          TEXT,
   created_by    INT NULL,
+  owner_id      INT NULL,
   created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT fk_tpl_created_by FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+  CONSTRAINT fk_tpl_created_by FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+  CONSTRAINT fk_tpl_owner_id   FOREIGN KEY (owner_id)   REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_tpl_owner (owner_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
