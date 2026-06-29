@@ -104,8 +104,24 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tx)
 .cat-name{flex:1;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .cat-add{display:flex;gap:5px;margin-top:2px}
 .cat-add .fi{padding:5px 8px;font-size:11px}
-.hbox{width:54px!important;padding:4px 6px!important;font-size:11px!important;text-align:center}
+.hbox{width:60px!important;padding:4px 6px!important;font-size:11px!important;text-align:center}
+.hbox2{width:64px!important;padding:4px 6px!important;font-size:11px!important}
 .col-empty{font-size:10px;color:var(--mu);text-align:center;padding:8px}
+.wlog{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.wlog .fi,.wlog .fsel{padding:5px 7px;font-size:11px}
+.wlog .fsel{flex:1;min-width:120px;width:auto}
+.wlog input[type=date]{width:auto;flex:0 0 auto}
+/* Kalendarz */
+.cal-dows{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-top:8px;font-size:9px;color:var(--mu);text-align:center;font-weight:700}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-top:3px}
+.cal-cell{position:relative;min-height:42px;border:1px solid var(--bd);border-radius:5px;padding:3px 4px;cursor:pointer;background:var(--bg3);transition:border-color .12s;display:flex;flex-direction:column}
+.cal-cell:hover{border-color:var(--ac)}
+.cal-empty{border:none;background:none;cursor:default}
+.cal-d{font-size:11px;font-weight:700}
+.cal-av{font-size:9px;color:var(--bl);margin-top:auto}
+.cal-off{background:rgba(212,91,61,.15);border-color:rgba(212,91,61,.5)}
+.cal-off-tag{font-size:8px;color:var(--wn);font-weight:700;margin-top:auto}
+.cal-today{outline:2px solid var(--ac);outline-offset:-2px}
 @media(max-width:650px){.pg{padding:10px 12px}.topbar,.tabs{padding-left:12px;padding-right:12px}.fg{grid-template-columns:1fr}.ff.s2{grid-column:1}.board{grid-template-columns:1fr}}
 </style>
 </head>
@@ -173,21 +189,34 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tx)
     </div>
   </div>
   <div id="board"></div>
+  <div id="calwrap" style="margin-top:18px"></div>
 </div>
 
-<!-- ZAKŁADKA 2: PODSUMOWANIE DNIA -->
+<!-- ZAKŁADKA 2: RAPORT GODZIN -->
 <div class="view" id="v-u">
-  <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:11px 14px;margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+  <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:11px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
     <div>
-      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:var(--ok)">Podsumowanie dnia</div>
-      <div style="font-size:10px;color:var(--mu)">Historia pracy: co zrobione i ile godzin — wg dnia i pracownika</div>
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:var(--ok)">Raport godzin</div>
+      <div style="font-size:10px;color:var(--mu)" id="rep-period">—</div>
     </div>
-    <select class="fsel h" id="u-filter" onchange="setUFilter(this.value)" title="Filtruj po pracowniku" style="width:auto;padding:5px 9px;font-size:11px;margin-left:auto"></select>
-    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <span style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mu)">Suma godzin:</span>
-      <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:var(--ac)" id="u-hours">0h</span>
+    <div class="seg" id="rep-seg" style="margin-left:auto">
+      <button class="sbtn on" data-v="day" onclick="setRepMode('day')">Dzień</button>
+      <button class="sbtn" data-v="week" onclick="setRepMode('week')">Tydzień</button>
+      <button class="sbtn" data-v="month" onclick="setRepMode('month')">Miesiąc</button>
+      <button class="sbtn" data-v="range" onclick="setRepMode('range')">Zakres</button>
     </div>
-    <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:var(--ok)" id="u-count">0</span>
+    <input class="fi" type="date" id="rep-anchor" onchange="setRepAnchor(this.value)" style="width:auto;font-size:11px;padding:5px 8px">
+    <span id="rep-fromto" class="h" style="display:flex;gap:5px;align-items:center">
+      <input class="fi" type="date" id="rep-from" onchange="setRepFromTo()" style="width:auto;font-size:11px;padding:5px 8px">
+      <span style="color:var(--mu)">→</span>
+      <input class="fi" type="date" id="rep-to" onchange="setRepFromTo()" style="width:auto;font-size:11px;padding:5px 8px">
+    </span>
+    <select class="fsel h" id="u-filter" onchange="setRepOwner(this.value)" title="Filtruj po pracowniku" style="width:auto;padding:5px 9px;font-size:11px"></select>
+    <div style="display:flex;align-items:center;gap:6px">
+      <span style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mu)">Σ godzin:</span>
+      <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:var(--ac)" id="u-hours">0h</span>
+      <span style="font-size:10px;color:var(--mu)">(<span id="u-count">0</span> wpis.)</span>
+    </div>
   </div>
   <div id="u-list"></div>
 </div>
@@ -249,36 +278,53 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tx)
 <!-- EDIT MODAL -->
 <div class="mbg h" id="emod" onclick="if(event.target===this)closeEd()">
   <div class="modal">
-    <h2>✏️ Edytuj zlecenie</h2>
+    <h2>✏️ Edytuj zadanie</h2>
     <div class="fg">
       <div class="ff s2"><div class="fl">Nazwa *</div><input class="fi" id="ed-n"></div>
-      <div class="ff"><div class="fl">Priorytet</div>
-        <select class="fsel" id="ed-p">
-          <option value="1">1 Wysoki</option><option value="2">2 Średni</option>
-          <option value="3">3 Niski</option><option value="4">4 Kiedyś</option>
-        </select>
+      <div class="ff"><div class="fl">Priorytet (1–10)</div>
+        <select class="fsel" id="ed-p"></select>
       </div>
       <div class="ff"><div class="fl">Typ</div>
         <select class="fsel" id="ed-t">
           <option value="once">Jednorazowe</option>
-          <option value="dc">✅ Codzienne</option>
           <option value="cyc">🔄 Cykliczne</option>
+        </select>
+      </div>
+      <div class="ff"><div class="fl">Status</div>
+        <select class="fsel" id="ed-st">
+          <option value="na_liscie">na liście</option>
+          <option value="trwajace">trwające</option>
+          <option value="zawieszone">zawieszone</option>
+          <option value="zamkniete">zamknięte</option>
         </select>
       </div>
       <div class="ff"><div class="fl">Zlecający</div>
         <select class="fsel" id="ed-who"></select>
       </div>
-      <div class="ff"><div class="fl">Przypisz do (wykonawca)</div>
+      <div class="ff"><div class="fl">Przypisz do (pracownik)</div>
         <select class="fsel" id="ed-owner"></select>
-      </div>
-      <div class="ff"><div class="fl">Godziny</div>
-        <input class="fi" id="ed-hours" type="number" min="0" step="0.5" placeholder="np. 2 lub 1.5">
       </div>
       <div class="ff s2"><div class="fl">Notatka</div><textarea class="fta" id="ed-note"></textarea></div>
     </div>
     <div class="mbns">
       <button class="btn" onclick="closeEd()">Anuluj</button>
       <button class="btn ok" onclick="saveEd()">💾 Zapisz</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTES MODAL -->
+<div class="mbg h" id="nmod" onclick="if(event.target===this)closeNotes()">
+  <div class="modal">
+    <h2 id="nmod-title">💬 Uwagi</h2>
+    <div id="nmod-list" style="max-height:200px;overflow-y:auto;margin-bottom:12px;display:flex;flex-direction:column;gap:5px"></div>
+    <div class="ff s2"><div class="fl">Nowa uwaga</div>
+      <textarea class="fta" id="nmod-body" placeholder="Treść uwagi..." style="min-height:60px"></textarea>
+    </div>
+    <div class="mbns">
+      <button class="btn" onclick="closeNotes()">Zamknij</button>
+      <button class="btn" onclick="saveNote(false)">💾 Zapisz</button>
+      <button class="btn ok" onclick="saveNote(true)" title="Zapisz i wyślij na porady@eporady24.pl">📧 Zapisz i wyślij</button>
     </div>
   </div>
 </div>

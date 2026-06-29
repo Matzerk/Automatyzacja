@@ -1,10 +1,10 @@
 // ═══════════════════════════════════════════════════════════════
 //  GILOTYNKA 🪓 — logika aplikacji (backend PHP + MySQL na kei.pl)
-//  2 zakładki:
-//   • Zadania     — pracownik: własna lista do odhaczania + godziny;
-//                   nadzorca: kolumny per pracownik (zarządza listą, przypisuje).
-//   • Podsumowanie— historia wykonań wg dnia, filtr po pracowniku, sumy godzin.
-//  Konta — pod przyciskiem ⚙ (tylko nadzorca).
+//  • Zadania: priorytety 1–10, statusy na_liscie/trwajace/zawieszone/zamkniete,
+//    pracownik pobiera/zamyka/zawiesza, rejestr godzin per dzień (zadanie wielodniowe).
+//  • Podsumowanie: raport godzin dzień/tydzień/miesiąc/zakres, filtr pracownika.
+//  • Kalendarz: dni wolne + godziny dostępności (pracownik i admin).
+//  • Konta — pod ⚙.
 // ═══════════════════════════════════════════════════════════════
 
 const $ = id => document.getElementById(id);
@@ -30,12 +30,10 @@ async function api(action, data, method) {
 
 // ─── Stan aplikacji ────────────────────────────────────────────
 const STATE = {
-  tasks: [],         // [{id,name,t,p,note,status,ownerId,hours,createdBy,completedBy,completedDate}]
-  templates: [],     // [{id,name,t,p,note,createdBy,ownerId}]
-  profiles: {},      // id -> {name, role, email}
-  me: null,          // {id, email, name, role}
-  role: 'worker',
-  cur: 'a',
+  tasks: [], logs: [], profiles: {}, me: null, role: 'worker', cur: 'a',
+  expanded: {},                       // ownerId -> czy lista rozwinięta (>10)
+  cal: { y: 0, m: 0, mode: 'off', user: 0, days: {}, offYear: 0 },
+  rep: { mode: 'month', anchor: '', from: '', to: '', owner: 'all' },
 };
 let _poll = null;
 
@@ -57,32 +55,23 @@ function gsStatus(msg) {
   if (msg.startsWith('✓')) setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 2500);
 }
 
-// ═══ HELPERS (wygląd) ═══
+// ═══ HELPERS ═══
 const DPL = ['niedziela','poniedziałek','wtorek','środa','czwartek','piątek','sobota'];
-const MPL = ['stycznia','lutego','marca','kwietnia','maja','czerwca','lipca','sierpnia','września','października','listopada','grudnia'];
-function fmtDate(s){const d=s?new Date(s+'T12:00:00'):new Date();return`${DPL[d.getDay()]}, ${d.getDate()} ${MPL[d.getMonth()]} ${d.getFullYear()}`;}
-function todayISO(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
-function psort(a,b){
-  const pa=a.t==='dc'?-1:(a.p==='dc'?0:+a.p||99);
-  const pb=b.t==='dc'?-1:(b.p==='dc'?0:+b.p||99);
-  return pa-pb;
-}
-function dotC(p){return p==='dc'?'var(--ac)':p==1?'var(--ok)':p==2?'var(--bl)':'var(--mu)';}
-function tBadge(t){
-  if(t==='dc') return'<span class="b b-dc">✅ codzienne</span>';
-  if(t==='cyc') return'<span class="b b-cy">🔄 cykliczne</span>';
-  return'<span class="b b-on">jednorazowe</span>';
-}
-function pBadge(p){
-  if(p==='dc') return'<span class="b b-dc">codzienne</span>';
-  if(p==1) return'<span class="b b-p1">prio 1</span>';
-  if(p==2) return'<span class="b b-p2">prio 2</span>';
-  return'<span class="b b-p3">prio '+esc(p)+'</span>';
-}
-// godziny -> tekst/badge
+const DPS = ['Pn','Wt','Śr','Cz','Pt','So','Nd'];
+const MPL = ['styczeń','luty','marzec','kwiecień','maj','czerwiec','lipiec','sierpień','wrzesień','październik','listopad','grudzień'];
+const MPL2 = ['stycznia','lutego','marca','kwietnia','maja','czerwca','lipca','sierpnia','września','października','listopada','grudnia'];
+function fmtDate(s){const d=s?new Date(s+'T12:00:00'):new Date();return`${DPL[d.getDay()]}, ${d.getDate()} ${MPL2[d.getMonth()]} ${d.getFullYear()}`;}
+function todayISO(){const d=new Date();return iso(d);}
+function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function hNum(h){return h==null?null:(Number.isInteger(h)?h:+(+h).toFixed(1));}
 function hStr(h){const n=hNum(h);return n==null?'':n+'h';}
-function hBadge(h){const s=hStr(h);return s?`<span class="b b-cy" title="godziny pracy">⏱ ${s}</span>`:'';}
+function pColor(p){p=+p;return p<=3?'var(--wn)':p<=6?'var(--ac)':'var(--bl)';}
+function pBadge(p){return`<span class="b" style="border-color:${pColor(p)};color:${pColor(p)}">P${esc(p)}</span>`;}
+function tBadge(t){return t==='cyc'?'<span class="b b-cy">🔄 cykliczne</span>':'<span class="b b-on">jednorazowe</span>';}
+function stBadge(s){
+  const m={na_liscie:['na liście','st-wait'],trwajace:['⏳ trwające','st-prog'],zawieszone:['⏸ zawieszone','st-wait'],zamkniete:['✓ zamknięte','st-done']};
+  const x=m[s]||['?','st-wait'];return`<span class="b ${x[1]}">${x[0]}</span>`;
+}
 function hueOf(id){let h=0;const s=String(id||'');for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))%360;return h;}
 function nameOf(id){const p=STATE.profiles[id];return p?p.name:'?';}
 function roleOf(id){const p=STATE.profiles[id];return p?p.role:'';}
@@ -92,21 +81,17 @@ function whoBadge(id){
   const hue=hueOf(id);
   return`<span title="${esc(nameOf(id))}" style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:10px;color:#fff;flex-shrink:0;background:hsl(${hue} 45% 45%)">${esc(initialOf(id))}</span>`;
 }
-
 const isSup = () => STATE.role==='supervisor';
-
-// lista użytkowników (do przypisywania)
 function allUsers(){
   return Object.entries(STATE.profiles).map(([id,p])=>({id:+id,name:p.name,role:p.role}))
     .sort((a,b)=>(a.role===b.role?0:a.role==='worker'?-1:1)||a.name.localeCompare(b.name,'pl'));
 }
+function workers(){ return allUsers().filter(u=>u.role==='worker'); }
+function psort(a,b){return (+a.p||99)-(+b.p||99) || a.name.localeCompare(b.name,'pl');}
 
-// opcje wyboru właściciela (select) — '' = nieprzypisane
-function ownerOptions(selected){
-  const opts=['<option value="">— nieprzypisane</option>']
-    .concat(allUsers().map(u=>`<option value="${u.id}"${(+selected===u.id)?' selected':''}>${esc(u.name)}${u.role==='supervisor'?' (nadzorca)':''}</option>`));
-  return opts.join('');
-}
+// godziny zadania (z rejestru)
+function taskHours(taskId){return STATE.logs.filter(l=>l.taskId===taskId).reduce((s,l)=>s+(+l.hours||0),0);}
+function taskHoursOn(taskId,date){return STATE.logs.filter(l=>l.taskId===taskId&&l.date===date).reduce((s,l)=>s+(+l.hours||0),0);}
 
 // ═══ ROUTING ═══
 function go(r){
@@ -118,57 +103,27 @@ function go(r){
   renderCur();
 }
 function renderCur(){
-  if(STATE.cur==='a') renderBoard();
-  else if(STATE.cur==='u') renderU();
+  if(STATE.cur==='a'){ renderBoard(); ensureCalendar(); }
+  else if(STATE.cur==='u') renderReport();
   else if(STATE.cur==='k') loadUsers().then(()=>{ if(STATE.cur==='k') renderK(); });
 }
 
-// ═══ GODZINY — edytor (popraw godziny istniejącego wpisu) ═══
-async function setHours(id){
-  const t=STATE.tasks.find(x=>x.id===id);
-  const cur=t&&t.hours!=null?String(hNum(t.hours)):'';
-  const v=prompt('Godziny pracy (np. 2 lub 1.5). Puste = wyczyść:', cur);
-  if(v===null) return;
-  const val=v.trim()===''?null:parseFloat(v.replace(',','.'));
-  if(val!==null&&(isNaN(val)||val<0)){alert('Podaj liczbę godzin ≥ 0.');return;}
-  gsStatus('⏳ Zapisuję...');
-  try{ await api('task_hours',{id,hours:val}); gsStatus('✓ Zapisano'); await reload(); }
-  catch(e){gsStatus('⚠ '+e.message);}
-}
-async function setStatus(id,status){
-  gsStatus('⏳ Zapisuję...');
-  try{ await api('task_status',{id,status}); gsStatus('✓ Zapisano'); await reload(); }
-  catch(e){gsStatus('⚠ '+e.message);}
-}
-
-let cmodCb=null;
-function showConfirm(msg,cb){$('cmod-msg').innerHTML=msg;cmodCb=cb;$('cmod').classList.remove('h');}
-function delTask(id){
-  const t=STATE.tasks.find(x=>x.id===id);
-  if(!t) return;
-  showConfirm(`Usunąć wpis:<br><strong>${esc(t.name)}</strong>?`,async()=>{
-    gsStatus('⏳ Usuwam...');
-    try{ await api('task_delete',{id}); gsStatus('✓ Usunięto'); await reload(); }
-    catch(e){gsStatus('⚠ '+e.message);}
-  });
-}
-
-// ═══ ZAKŁADKA 1: ZADANIA (board) ═══
+// ═══ ZAKŁADKA 1: ZADANIA ═══
 function renderBoard(){
   const board=$('board'); if(!board) return;
   $('board-title').textContent = isSup() ? 'Zadania pracowników' : 'Moje zadania';
   $('board-sub').textContent   = isSup()
-    ? 'Każdy pracownik ma swoją kolumnę — zarządzaj listą i przypisuj zadania'
-    : 'Odhacz, co dziś zrobiłeś, i wpisz godziny';
+    ? 'Każdy pracownik ma kolumnę — przypisuj zadania, wpisuj/sprawdzaj godziny'
+    : 'Wpisuj godziny, pobieraj i zamykaj zadania (priorytet 1 = najważniejsze)';
   if(isSup()){
-    const workers=allUsers().filter(u=>u.role==='worker');
-    if(!workers.length){
+    const ws=workers();
+    if(!ws.length){
       board.className='';
-      board.innerHTML='<div class="empty"><div class="ei">👥</div>Brak pracowników.<br><span style="font-size:11px">Dodaj konta w <strong style="color:var(--ac)">⚙ Konta</strong> (prawy górny róg).</span></div>';
+      board.innerHTML='<div class="empty"><div class="ei">👥</div>Brak pracowników.<br><span style="font-size:11px">Dodaj konta w <strong style="color:var(--ac)">⚙ Konta</strong>.</span></div>';
       return;
     }
     board.className='board';
-    board.innerHTML=workers.map(w=>panelHtml(w.id,false)).join('');
+    board.innerHTML=ws.map(w=>panelHtml(w.id,false)).join('');
   } else {
     board.className='';
     board.innerHTML=panelHtml(STATE.me.id,true);
@@ -176,220 +131,361 @@ function renderBoard(){
 }
 
 function panelHtml(ownerId, solo){
-  const tasks=STATE.tasks.filter(t=>t.ownerId===ownerId);
   const today=todayISO();
-  const assigned=tasks.filter(t=>t.status==='oczekiwanie'||t.status==='w_realizacji').sort(psort);
-  const doneToday=tasks.filter(t=>t.status==='ukonczone'&&t.completedDate===today).sort((a,b)=>b.id-a.id);
-  const todayH=doneToday.reduce((s,t)=>s+(t.hours!=null?+t.hours:0),0);
-  const catalog=STATE.templates.filter(t=>t.ownerId===ownerId||t.ownerId==null)
-    .sort((a,b)=>a.name.localeCompare(b.name,'pl'));
+  const all=STATE.tasks.filter(t=>t.ownerId===ownerId);
+  const active=all.filter(t=>t.status!=='zamkniete').sort(psort);
+  const picklist=active.filter(t=>t.status!=='zamkniete');
+  const expanded=!!STATE.expanded[ownerId];
+  const shown=expanded?active:active.slice(0,10);
+  const todayLogs=STATE.logs.filter(l=>l.workerId===ownerId&&l.date===today);
+  const todayH=todayLogs.reduce((s,l)=>s+(+l.hours||0),0);
   const title=(ownerId===STATE.me.id && !isSup()) ? 'Moje zadania' : nameOf(ownerId);
+  const taskOpts=picklist.map(t=>`<option value="${t.id}">[P${esc(t.p)}] ${esc(t.name)}</option>`).join('');
   return `<div class="panel${solo?' panel-solo':''}">
     <div class="panel-head">
       ${whoBadge(ownerId)}
       <span class="panel-name">${esc(title)}</span>
-      <span class="panel-stat">dziś <strong style="color:var(--ok)">${doneToday.length}</strong> · ⏱ <strong style="color:var(--bl)">${hStr(todayH)||'0h'}</strong></span>
+      <span class="panel-stat">dziś ⏱ <strong style="color:var(--bl)">${hStr(todayH)||'0h'}</strong></span>
     </div>
-    ${assigned.length?`<div class="panel-sec">📌 Od szefa</div>${assigned.map(assignedRowHtml).join('')}`:''}
-    <div class="panel-sec">📝 Lista — odhacz co zrobione</div>
-    ${catalog.length?catalog.map(t=>catalogRowHtml(t,ownerId)).join(''):'<div class="col-empty">Brak zadań na liście — dodaj poniżej.</div>'}
-    <div class="cat-add">
-      <input class="fi" id="newcat-${ownerId}" placeholder="Dodaj zadanie do listy…" onkeydown="if(event.key==='Enter')addCatalog(${ownerId})">
-      <button class="btn sm" onclick="addCatalog(${ownerId})" title="Dodaj do listy">＋</button>
+
+    <div class="panel-sec">⏱ Wpisz godziny (dziś)</div>
+    <div class="wlog">
+      <input class="fi" type="date" id="wd-${ownerId}" value="${today}">
+      <select class="fsel" id="wt-${ownerId}">${taskOpts||'<option value="">— brak zadań —</option>'}</select>
+      <input class="fi hbox" id="wh-${ownerId}" type="number" min="0" step="0.5" placeholder="godz.">
+      <button class="btn ok sm" onclick="logHours(${ownerId})">Zapisz</button>
+      <button class="btn sm" onclick="toggleNewTask(${ownerId})" id="ntbtn-${ownerId}" title="Dodaj nowe zlecenie">＋ Nowe</button>
     </div>
-    ${isSup()?`<div class="cat-add"><input class="fi" id="assign-${ownerId}" placeholder="Przypisz jednorazowe…" onkeydown="if(event.key==='Enter')assignOne(${ownerId})"><button class="btn ok sm" onclick="assignOne(${ownerId})" title="Przypisz zadanie">📌</button></div>`:''}
-    ${doneToday.length?`<div class="panel-sec">✅ Zrobione dziś</div>${doneToday.map(doneRowHtml).join('')}`:''}
+    <div class="h" id="ntform-${ownerId}">
+      <div class="wlog" style="margin-top:5px">
+        <input class="fi" id="ntn-${ownerId}" placeholder="Nazwa nowego zlecenia">
+        <select class="fsel hbox2" id="ntp-${ownerId}" title="Priorytet">${prioOpts(5)}</select>
+        <select class="fsel" id="ntt-${ownerId}" title="Typ"><option value="once">jednorazowe</option><option value="cyc">cykliczne</option></select>
+        <button class="btn ok sm" onclick="addTaskFor(${ownerId})">Dodaj</button>
+      </div>
+    </div>
+
+    <div class="panel-sec">📋 Lista zadań ${active.length>10?`<span style="color:var(--mu);font-weight:400">(${active.length})</span>`:''}</div>
+    ${shown.length?shown.map(t=>taskRow(t)).join(''):'<div class="col-empty">Brak aktywnych zadań.</div>'}
+    ${active.length>10?`<button class="btn sm" style="margin-top:4px" onclick="toggleExpand(${ownerId})">${expanded?'▲ Zwiń':'▼ Pokaż wszystkie ('+active.length+')'}</button>`:''}
+
+    ${todayLogs.length?`<div class="panel-sec">✅ Dziś wpisane (${hStr(todayH)})</div>${todayLogs.map(logRow).join('')}`:''}
+  </div>`;
+}
+function prioOpts(sel){let o='';for(let i=1;i<=10;i++)o+=`<option value="${i}"${i===sel?' selected':''}>P${i}</option>`;return o;}
+
+function taskRow(t){
+  const total=taskHours(t.id), today=taskHoursOn(t.id,todayISO());
+  const addedBy = (isSup() && t.createdBy && roleOf(t.createdBy)==='worker')
+    ? `<span class="b b-on" title="zlecenie dodane przez pracownika">➕ dodał ${esc(nameOf(t.createdBy))}</span>` : '';
+  let actions='';
+  if(t.status==='na_liscie') actions=`<button class="btn sm bl" onclick="setStat(${t.id},'trwajace')" title="Pobierz zadanie">▶ Pobierz</button>`;
+  else if(t.status==='trwajace') actions=`<button class="btn ok sm" onclick="setStat(${t.id},'zamkniete')" title="Zamknij (skończone)">✓ Zamknij</button><button class="btn sm" onclick="setStat(${t.id},'zawieszone')" title="Zawieś">⏸</button>`;
+  else if(t.status==='zawieszone') actions=`<button class="btn sm bl" onclick="setStat(${t.id},'trwajace')" title="Wznów">▶ Wznów</button>`;
+  return `<div class="task-card" style="padding:5px 8px;flex-wrap:wrap;gap:5px;align-items:center">
+    ${pBadge(t.p)}
+    <span class="task-card-name" style="flex:1;min-width:90px">${esc(t.name)}</span>
+    ${tBadge(t.t)}${stBadge(t.status)}
+    ${total>0?`<span class="b b-cy" title="łącznie godzin">Σ ${hStr(total)}</span>`:''}
+    ${addedBy}
+    <div style="display:flex;gap:3px;align-items:center;flex-shrink:0">
+      ${actions}
+      <button class="ibtn" onclick="openNotes(${t.id})" title="Uwagi / wyślij e-mail">💬</button>
+      <button class="ibtn e" onclick="openEd(${t.id})" title="Edytuj">✏️</button>
+      <button class="ibtn" onclick="delTask(${t.id})" title="Usuń">🗑️</button>
+    </div>
+  </div>`;
+}
+function logRow(l){
+  const tn=l.taskId?(STATE.tasks.find(t=>t.id===l.taskId)||{}).name:'(bez zadania)';
+  return `<div class="task-card done-card-dc" style="padding:4px 8px;gap:6px">
+    <span class="b b-cy">⏱ ${hStr(l.hours)}</span>
+    <span class="task-card-name" style="flex:1">${esc(tn||'?')}</span>
+    <button class="ibtn" onclick="delLog(${l.id})" title="Usuń wpis godzin">🗑️</button>
   </div>`;
 }
 
-function catalogRowHtml(tpl,ownerId){
-  return `<div class="cat-row">
-    <span class="cat-name" title="${esc(tpl.name)}">${esc(tpl.name)}${tpl.t==='dc'?' <span class="b b-dc" style="font-size:8px;padding:1px 5px">codz</span>':''}</span>
-    <input class="fi hbox" id="h-${ownerId}-${tpl.id}" type="number" min="0" step="0.5" placeholder="h">
-    <button class="btn ok sm" onclick="logTpl(${ownerId},${tpl.id})" title="Zapisz jako zrobione dziś">✓</button>
-    <button class="ibtn" onclick="delCatalog(${tpl.id})" title="Usuń z listy">🗑️</button>
-  </div>`;
-}
-function assignedRowHtml(t){
-  return `<div class="task-card" style="padding:4px 8px;flex-wrap:wrap;gap:5px">
-    <div class="dot" style="background:${dotC(t.p)}"></div>
-    <span class="task-card-name">${esc(t.name)}</span>${tBadge(t.t)}
-    <input class="fi hbox" id="ah-${t.id}" type="number" min="0" step="0.5" placeholder="h" value="${t.hours!=null?hNum(t.hours):''}">
-    <button class="btn ok sm" onclick="completeAssigned(${t.id})" title="Ukończono">✓</button>
-    <button class="ibtn e" onclick="openEd(${t.id})" title="Edytuj">✏️</button>
-    <button class="ibtn" onclick="delTask(${t.id})" title="Usuń">🗑️</button>
-  </div>`;
-}
-function doneRowHtml(t){
-  return `<div class="task-card done-card-dc" style="padding:4px 8px;flex-wrap:wrap;gap:5px">
-    <div class="dot" style="background:${dotC(t.p)}"></div>
-    <span class="task-card-name" style="text-decoration:line-through;color:var(--mu)">${esc(t.name)}</span>
-    ${hBadge(t.hours)}
-    <button class="ibtn" onclick="setHours(${t.id})" title="Popraw godziny">⏱</button>
-    <button class="ibtn" onclick="delTask(${t.id})" title="Cofnij / usuń wpis">↩</button>
-  </div>`;
-}
+function toggleExpand(ownerId){ STATE.expanded[ownerId]=!STATE.expanded[ownerId]; renderBoard(); }
+function toggleNewTask(ownerId){ const f=$(`ntform-${ownerId}`); if(f) f.classList.toggle('h'); }
 
-async function logTpl(ownerId,tplId){
-  const t=STATE.templates.find(x=>x.id===tplId); if(!t) return;
-  const inp=$(`h-${ownerId}-${tplId}`);
-  const hv=inp?inp.value.trim():'';
+async function logHours(ownerId){
+  const tid=$(`wt-${ownerId}`).value;
+  if(!tid){alert('Wybierz zadanie z listy (albo dodaj nowe przyciskiem „＋ Nowe").');return;}
+  const hv=$(`wh-${ownerId}`).value.trim();
+  if(hv===''||+hv<=0){alert('Podaj liczbę godzin większą od 0.');return;}
+  const date=$(`wd-${ownerId}`).value||todayISO();
+  gsStatus('⏳ Zapisuję godziny...');
+  try{
+    await api('log_add',{task_id:tid,hours:hv,work_date:date,worker_id:ownerId});
+    $(`wh-${ownerId}`).value='';
+    gsStatus('✓ Zapisano godziny'); await reload();
+  }catch(e){gsStatus('⚠ '+e.message);}
+}
+async function addTaskFor(ownerId){
+  const name=$(`ntn-${ownerId}`).value.trim();
+  if(!name){alert('Wpisz nazwę zlecenia.');return;}
+  gsStatus('⏳ Dodaję zlecenie...');
+  try{
+    await api('task_create',{name,priority:$(`ntp-${ownerId}`).value,type:$(`ntt-${ownerId}`).value,owner_id:ownerId});
+    $(`ntn-${ownerId}`).value='';
+    gsStatus('✓ Dodano'); await reload();
+  }catch(e){gsStatus('⚠ '+e.message);}
+}
+async function setStat(id,status){
   gsStatus('⏳ Zapisuję...');
-  try{
-    await api('task_log',{name:t.name,type:t.t,priority:t.p==='dc'?1:t.p,note:t.note||'',hours:hv===''?null:hv,owner_id:ownerId});
-    gsStatus('✓ Zapisano'); await reload();
-  }catch(e){gsStatus('⚠ '+e.message);}
+  try{ await api('task_status',{id,status}); gsStatus('✓ Zapisano'); await reload(); }
+  catch(e){gsStatus('⚠ '+e.message);}
 }
-async function addCatalog(ownerId){
-  const inp=$(`newcat-${ownerId}`); const name=inp?inp.value.trim():'';
-  if(!name) return;
-  gsStatus('⏳ Dodaję...');
-  try{
-    await api('template_create',{name,type:'once',priority:1,owner_id:ownerId});
-    if(inp) inp.value='';
-    await loadTemplates(); renderCur(); gsStatus('✓ Dodano do listy');
-  }catch(e){gsStatus('⚠ '+e.message);}
+async function delLog(id){
+  gsStatus('⏳ Usuwam...');
+  try{ await api('log_delete',{id}); gsStatus('✓ Usunięto'); await reload(); }
+  catch(e){gsStatus('⚠ '+e.message);}
 }
-function delCatalog(tplId){
-  const t=STATE.templates.find(x=>x.id===tplId);
-  showConfirm(`Usunąć z listy:<br><strong>${esc(t?t.name:'')}</strong>?`,async()=>{
+
+let cmodCb=null;
+function showConfirm(msg,cb){$('cmod-msg').innerHTML=msg;cmodCb=cb;$('cmod').classList.remove('h');}
+function delTask(id){
+  const t=STATE.tasks.find(x=>x.id===id); if(!t) return;
+  showConfirm(`Usunąć zadanie:<br><strong>${esc(t.name)}</strong>?<br><span style="font-size:11px;color:var(--mu)">Usunie też powiązane wpisy godzin.</span>`,async()=>{
     gsStatus('⏳ Usuwam...');
-    try{ await api('template_delete',{id:tplId}); await loadTemplates(); renderCur(); gsStatus('✓ Usunięto'); }
+    try{ await api('task_delete',{id}); gsStatus('✓ Usunięto'); await reload(); }
     catch(e){gsStatus('⚠ '+e.message);}
   });
 }
-async function assignOne(ownerId){
-  const inp=$(`assign-${ownerId}`); const name=inp?inp.value.trim():'';
-  if(!name) return;
-  gsStatus('⏳ Przypisuję...');
+
+// ═══ UWAGI (modal + e-mail) ═══
+let noteTaskId=null;
+async function openNotes(id){
+  noteTaskId=id;
+  const t=STATE.tasks.find(x=>x.id===id);
+  $('nmod-title').textContent='💬 Uwagi — '+(t?t.name:'');
+  $('nmod-body').value='';
+  $('nmod-list').innerHTML='<div style="font-size:11px;color:var(--mu)">Ładuję…</div>';
+  $('nmod').classList.remove('h');
   try{
-    await api('task_create',{name,type:'once',priority:1,owner_id:ownerId});
-    if(inp) inp.value='';
-    await reload(); gsStatus('✓ Przypisano');
-  }catch(e){gsStatus('⚠ '+e.message);}
+    const j=await api('task_notes&task_id='+id);
+    const notes=j.notes||[];
+    $('nmod-list').innerHTML=notes.length?notes.map(n=>`
+      <div class="done-entry" style="display:block;padding:8px 10px">
+        <div style="font-size:12px;white-space:pre-wrap">${esc(n.body)}</div>
+        <div style="font-size:9px;color:var(--mu);margin-top:3px">${esc(n.authorId?nameOf(n.authorId):'?')} · ${esc((n.createdAt||'').slice(0,16).replace('T',' '))}${n.emailed?' · 📧 wysłano':''}</div>
+      </div>`).join(''):'<div style="font-size:11px;color:var(--mu)">Brak uwag.</div>';
+  }catch(e){ $('nmod-list').innerHTML='<div style="font-size:11px;color:var(--wn)">'+esc(e.message)+'</div>'; }
 }
-async function completeAssigned(id){
-  const inp=$(`ah-${id}`); const hv=inp?inp.value.trim():'';
-  gsStatus('⏳ Zapisuję...');
-  try{ await api('task_status',{id,status:'ukonczone',hours:hv===''?null:hv}); gsStatus('✓ Zapisano'); await reload(); }
-  catch(e){gsStatus('⚠ '+e.message);}
+function closeNotes(){ noteTaskId=null; $('nmod').classList.add('h'); }
+async function saveNote(send){
+  if(!noteTaskId) return;
+  const body=$('nmod-body').value.trim();
+  if(!body){alert('Wpisz treść uwagi.');return;}
+  gsStatus('⏳ Zapisuję uwagę...');
+  try{
+    const j=await api('task_note',{task_id:noteTaskId,body,send:!!send});
+    gsStatus(send?(j.emailed?'✓ Zapisano i wysłano e-mail':'✓ Zapisano (e-mail nie wyszedł)'):'✓ Zapisano uwagę');
+    openNotes(noteTaskId);
+  }catch(e){gsStatus('⚠ '+e.message);}
 }
 
 // ═══ EDYCJA (modal) ═══
 let edId=null;
 function openEd(id){
   edId=id;
-  const t=STATE.tasks.find(x=>x.id===id);
-  if(!t) return;
+  const t=STATE.tasks.find(x=>x.id===id); if(!t) return;
   $('ed-n').value=t.name;
-  $('ed-p').value=t.p==='dc'?'1':String(t.p);
-  $('ed-t').value=t.t;
-  $('ed-hours').value=t.hours!=null?String(hNum(t.hours)):'';
+  $('ed-p').innerHTML=prioOpts(+t.p||5);
+  $('ed-t').value=t.t==='cyc'?'cyc':'once';
+  $('ed-st').value=t.status;
+  $('ed-note').value=t.note||'';
   const supOnly=document.querySelectorAll('#ed-who, #ed-owner');
   if(isSup()){
     const sups=Object.entries(STATE.profiles).filter(([,p])=>p.role==='supervisor');
     $('ed-who').innerHTML=sups.map(([id,p])=>`<option value="${id}">${esc(p.name)}</option>`).join('')||`<option value="${STATE.me.id}">${esc(nameOf(STATE.me.id))}</option>`;
     $('ed-who').value=t.createdBy||STATE.me.id;
-    $('ed-owner').innerHTML=ownerOptions(t.ownerId);
+    $('ed-owner').innerHTML='<option value="">— nieprzypisane</option>'+allUsers().map(u=>`<option value="${u.id}"${t.ownerId===u.id?' selected':''}>${esc(u.name)}</option>`).join('');
     supOnly.forEach(el=>el.closest('.ff').classList.remove('h'));
   }else{
     supOnly.forEach(el=>el.closest('.ff').classList.add('h'));
   }
-  $('ed-note').value=t.note||'';
   $('emod').classList.remove('h');
 }
 function closeEd(){edId=null;$('emod').classList.add('h');}
 async function saveEd(){
   if(!edId) return;
-  const t=STATE.tasks.find(x=>x.id===edId);
-  if(!t){closeEd();return;}
-  const newT=$('ed-t').value;
-  const hv=$('ed-hours').value.trim();
-  const payload={
-    id:edId,
-    name:$('ed-n').value.trim()||t.name,
-    type:newT,
-    priority:parseInt($('ed-p').value)||1,
-    note:$('ed-note').value.trim(),
-    hours:hv===''?null:hv,
-  };
+  const t=STATE.tasks.find(x=>x.id===edId); if(!t){closeEd();return;}
+  const payload={id:edId,name:$('ed-n').value.trim()||t.name,type:$('ed-t').value,priority:$('ed-p').value,note:$('ed-note').value.trim()};
   if(isSup()){
     payload.created_by=parseInt($('ed-who').value)||null;
-    const ow=$('ed-owner').value;
-    payload.owner_id=ow===''?null:ow;
+    const ow=$('ed-owner').value; payload.owner_id=ow===''?null:ow;
   }
   gsStatus('⏳ Zapisuję...');
-  try{ await api('task_update',payload); gsStatus('✓ Zapisano'); closeEd(); await reload(); }
-  catch(e){gsStatus('⚠ '+e.message);}
+  try{
+    await api('task_update',payload);
+    // status osobno (gdy zmieniony)
+    const ns=$('ed-st').value;
+    if(ns && ns!==t.status) await api('task_status',{id:edId,status:ns});
+    gsStatus('✓ Zapisano'); closeEd(); await reload();
+  }catch(e){gsStatus('⚠ '+e.message);}
 }
 
-// ═══ ZAKŁADKA 2: PODSUMOWANIE DNIA ═══
-let uState={owner:'all'};
-function setUFilter(v){uState.owner=v;renderU();}
-function buildUFilter(){
-  const sel=$('u-filter'); if(!sel) return;
-  if(!isSup()){sel.classList.add('h');return;}
-  sel.classList.remove('h');
-  sel.innerHTML=['<option value="all">👥 Wszyscy pracownicy</option>']
-    .concat(allUsers().filter(u=>u.role==='worker').map(u=>`<option value="${u.id}">${esc(u.name)}</option>`)).join('');
-  sel.value=uState.owner;
+// ═══ ZAKŁADKA 2: RAPORT GODZIN ═══
+function repRange(){
+  const a=STATE.rep.anchor?new Date(STATE.rep.anchor+'T12:00:00'):new Date();
+  if(STATE.rep.mode==='day') return [iso(a),iso(a)];
+  if(STATE.rep.mode==='week'){
+    const d=new Date(a); const dow=(d.getDay()+6)%7; // pon=0
+    const mon=new Date(d); mon.setDate(d.getDate()-dow);
+    const sun=new Date(mon); sun.setDate(mon.getDate()+6);
+    return [iso(mon),iso(sun)];
+  }
+  if(STATE.rep.mode==='month'){
+    const f=new Date(a.getFullYear(),a.getMonth(),1), l=new Date(a.getFullYear(),a.getMonth()+1,0);
+    return [iso(f),iso(l)];
+  }
+  return [STATE.rep.from||'0000-01-01', STATE.rep.to||'9999-12-31']; // zakres
 }
-function renderU(){
-  buildUFilter();
-  let done=STATE.tasks.filter(t=>t.status==='ukonczone');
-  if(isSup() && uState.owner!=='all') done=done.filter(t=>t.ownerId===+uState.owner);
-  done.sort((a,b)=>(b.completedDate||'').localeCompare(a.completedDate||''));
-  $('u-count').textContent=done.length;
-  const totalH=done.reduce((s,t)=>s+(t.hours!=null?+t.hours:0),0);
-  $('u-hours').textContent=hStr(totalH)||'0h';
-  if(!done.length){$('u-list').innerHTML=`<div class="empty"><div class="ei">📊</div>Brak ukończonych zadań w tym widoku.</div>`;return;}
-  const byDate={};
-  done.forEach(t=>{const d=t.completedDate||'brak';(byDate[d]=byDate[d]||[]).push(t);});
-  $('u-list').innerHTML=Object.entries(byDate).sort((a,b)=>b[0].localeCompare(a[0])).map(([date,items])=>{
-    const dayH=items.reduce((s,t)=>s+(t.hours!=null?+t.hours:0),0);
-    const byOwner={};
-    items.forEach(t=>{const o=t.ownerId||0;(byOwner[o]=byOwner[o]||[]).push(t);});
-    const ownerBlocks=Object.entries(byOwner).map(([oid,its])=>{
-      const oh=its.reduce((s,t)=>s+(t.hours!=null?+t.hours:0),0);
-      const head=isSup()?`<div style="display:flex;align-items:center;gap:6px;margin:8px 0 4px">${whoBadge(+oid||null)}<span style="font-size:11px;font-weight:700">${esc(+oid?nameOf(+oid):'— nieprzypisane')}</span><span style="font-size:10px;color:var(--bl)">⏱ ${hStr(oh)||'0h'}</span><span style="font-size:9px;color:var(--mu)">· ${its.length} zad.</span></div>`:'';
-      return head+its.map(doneSummaryRow).join('');
+function setRepMode(m){ STATE.rep.mode=m; renderReport(); }
+function setRepAnchor(v){ STATE.rep.anchor=v; renderReport(); }
+function setRepFromTo(){ STATE.rep.from=$('rep-from').value; STATE.rep.to=$('rep-to').value; renderReport(); }
+function setRepOwner(v){ STATE.rep.owner=v; renderReport(); }
+function renderReport(){
+  if(!STATE.rep.anchor) STATE.rep.anchor=todayISO();
+  // seg active
+  document.querySelectorAll('#rep-seg .sbtn').forEach(b=>b.classList.toggle('on',b.dataset.v===STATE.rep.mode));
+  $('rep-anchor').classList.toggle('h', STATE.rep.mode==='range');
+  $('rep-fromto').classList.toggle('h', STATE.rep.mode!=='range');
+  $('rep-anchor').value=STATE.rep.anchor;
+  // filtr pracownika (admin)
+  const fsel=$('u-filter');
+  if(isSup()){ fsel.classList.remove('h');
+    fsel.innerHTML=['<option value="all">👥 Wszyscy</option>'].concat(workers().map(u=>`<option value="${u.id}">${esc(u.name)}</option>`)).join('');
+    fsel.value=STATE.rep.owner;
+  } else fsel.classList.add('h');
+
+  const [from,to]=repRange();
+  let logs=STATE.logs.filter(l=>l.date>=from && l.date<=to);
+  if(isSup() && STATE.rep.owner!=='all') logs=logs.filter(l=>l.workerId===+STATE.rep.owner);
+  const total=logs.reduce((s,l)=>s+(+l.hours||0),0);
+  $('u-hours').textContent=hStr(total)||'0h';
+  $('u-count').textContent=logs.length;
+  const lbl={day:'dzień',week:'tydzień',month:'miesiąc',range:'zakres'}[STATE.rep.mode];
+  $('rep-period').textContent = from===to?fmtDate(from):`${from} → ${to}`;
+
+  if(!logs.length){ $('u-list').innerHTML=`<div class="empty"><div class="ei">📊</div>Brak godzin w wybranym okresie (${esc(lbl)}).</div>`; return; }
+
+  // grupuj: pracownik -> zadanie -> suma; + rozbicie po dniach
+  const byWorker={};
+  logs.forEach(l=>{ (byWorker[l.workerId]=byWorker[l.workerId]||[]).push(l); });
+  $('u-list').innerHTML=Object.entries(byWorker)
+    .sort((a,b)=>nameOf(+a[0]).localeCompare(nameOf(+b[0]),'pl'))
+    .map(([wid,ls])=>{
+      const wh=ls.reduce((s,l)=>s+(+l.hours||0),0);
+      const byTask={};
+      ls.forEach(l=>{ const k=l.taskId||0; (byTask[k]=byTask[k]||[]).push(l); });
+      const taskRows=Object.entries(byTask).map(([tid,tls])=>{
+        const th=tls.reduce((s,l)=>s+(+l.hours||0),0);
+        const tname=+tid?((STATE.tasks.find(t=>t.id===+tid)||{}).name||'(usunięte)'):'(bez zadania)';
+        const days=tls.sort((a,b)=>a.date.localeCompare(b.date)).map(l=>`${l.date.slice(5)}: ${hStr(l.hours)}`).join(' · ');
+        return `<div class="done-entry" style="display:block;padding:7px 10px">
+          <div style="display:flex;gap:8px"><span style="flex:1;font-size:12px">${esc(tname)}</span><span class="b b-cy">Σ ${hStr(th)}</span></div>
+          <div style="font-size:9px;color:var(--mu);margin-top:2px">${esc(days)}</div>
+        </div>`;
+      }).join('');
+      return `<div style="margin-bottom:16px">
+        <div style="font-size:11px;font-weight:700;color:var(--ac);margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center">
+          <span style="display:flex;align-items:center;gap:6px">${whoBadge(+wid)} ${esc(nameOf(+wid))}</span>
+          <span style="color:var(--bl)">⏱ ${hStr(wh)}</span>
+        </div>${taskRows}</div>`;
     }).join('');
-    return `<div style="margin-bottom:16px">
-      <div style="font-size:10px;font-weight:700;color:var(--ac);letter-spacing:1px;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between">
-        <span>${fmtDate(date==='brak'?null:date)}</span>${dayH>0?`<span style="color:var(--bl)">⏱ ${hStr(dayH)}</span>`:''}
-      </div>${ownerBlocks}</div>`;
-  }).join('');
 }
-function doneSummaryRow(t){
-  return `<div class="done-entry">
-    <div class="dot" style="background:${dotC(t.p)};flex-shrink:0"></div>
-    <div style="flex:1"><div style="font-size:12px">${esc(t.name)}</div>
-    ${t.note?`<div style="font-size:10px;color:var(--mu);margin-top:1px">${esc(t.note)}</div>`:''}</div>
-    ${hBadge(t.hours)}
-    <button class="ibtn" onclick="setHours(${t.id})" title="Godziny">⏱</button>
-    ${isSup()?`<button class="ibtn e" onclick="openEd(${t.id})" title="Edytuj">✏️</button><button class="ibtn" onclick="delTask(${t.id})" title="Usuń">🗑️</button>`:''}
+
+// ═══ KALENDARZ ═══
+function ensureCalendar(){
+  if(!STATE.cal.y){ const d=new Date(); STATE.cal.y=d.getFullYear(); STATE.cal.m=d.getMonth(); }
+  if(!STATE.cal.user) STATE.cal.user = isSup() ? (workers()[0]?.id || STATE.me.id) : STATE.me.id;
+  loadCalendar().then(renderCalendar);
+}
+async function loadCalendar(){
+  const y=STATE.cal.y, m=STATE.cal.m;
+  const from=iso(new Date(y,m,1)), to=iso(new Date(y,m+1,0));
+  try{
+    const j=await api(`calendar_get&user_id=${STATE.cal.user}&from=${from}&to=${to}&year=${y}`);
+    STATE.cal.days={}; (j.days||[]).forEach(d=>{STATE.cal.days[d.day]={isOff:d.isOff,avail:d.availHours};});
+    STATE.cal.offYear=j.offThisYear||0;
+  }catch(e){ STATE.cal.days={}; }
+}
+function calNav(delta){ let m=STATE.cal.m+delta, y=STATE.cal.y; if(m<0){m=11;y--;}if(m>11){m=0;y++;} STATE.cal.m=m;STATE.cal.y=y; loadCalendar().then(renderCalendar); }
+function calMode(mode){ STATE.cal.mode=mode; renderCalendar(); }
+function calUser(v){ STATE.cal.user=+v; loadCalendar().then(renderCalendar); }
+function renderCalendar(){
+  const wrap=$('calwrap'); if(!wrap) return;
+  const y=STATE.cal.y, m=STATE.cal.m;
+  const first=new Date(y,m,1), startDow=(first.getDay()+6)%7, dim=new Date(y,m+1,0).getDate();
+  let cells='';
+  for(let i=0;i<startDow;i++) cells+='<div class="cal-cell cal-empty"></div>';
+  const today=todayISO();
+  for(let d=1;d<=dim;d++){
+    const ds=iso(new Date(y,m,d)); const info=STATE.cal.days[ds]||{};
+    const cls=['cal-cell']; if(info.isOff)cls.push('cal-off'); if(ds===today)cls.push('cal-today');
+    cells+=`<div class="${cls.join(' ')}" onclick="calClick('${ds}')" title="${ds}">
+      <span class="cal-d">${d}</span>
+      ${info.avail!=null?`<span class="cal-av">${hNum(info.avail)}h</span>`:''}
+      ${info.isOff?'<span class="cal-off-tag">wolne</span>':''}
+    </div>`;
+  }
+  const owSel = isSup() ? `<select class="fsel" onchange="calUser(this.value)" style="width:auto;font-size:11px;padding:4px 8px">${workers().map(u=>`<option value="${u.id}"${STATE.cal.user===u.id?' selected':''}>${esc(u.name)}</option>`).join('')}</select>` : '';
+  wrap.innerHTML=`
+  <div class="panel" style="max-width:560px">
+    <div class="panel-head" style="flex-wrap:wrap;gap:8px">
+      <span class="panel-name">🗓️ Kalendarz dni wolnych</span>
+      ${owSel}
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;justify-content:space-between;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:6px">
+        <button class="btn sm" onclick="calNav(-1)">‹</button>
+        <strong style="font-family:'Syne',sans-serif">${MPL[m]} ${y}</strong>
+        <button class="btn sm" onclick="calNav(1)">›</button>
+      </div>
+      <div class="seg">
+        <button class="sbtn ${STATE.cal.mode==='off'?'on':''}" onclick="calMode('off')">Dni wolne</button>
+        <button class="sbtn ${STATE.cal.mode==='avail'?'on':''}" onclick="calMode('avail')">Godziny dostępności</button>
+      </div>
+    </div>
+    <div class="cal-dows">${DPS.map(d=>`<div>${d}</div>`).join('')}</div>
+    <div class="cal-grid">${cells}</div>
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--mu);margin-top:6px">
+      <span>Tryb: <strong style="color:var(--ac)">${STATE.cal.mode==='off'?'klik = dzień wolny':'klik = ustaw godziny dostępności'}</strong></span>
+      <span>Dni urlopowe ${y}: <strong style="color:var(--wn)">${STATE.cal.offYear}</strong></span>
+    </div>
   </div>`;
 }
+async function calClick(ds){
+  const info=STATE.cal.days[ds]||{};
+  try{
+    if(STATE.cal.mode==='off'){
+      await api('calendar_set',{user_id:STATE.cal.user,day:ds,is_off:info.isOff?0:1});
+    } else {
+      const cur=info.avail!=null?String(info.avail):'';
+      const v=prompt('Godziny dostępności w dniu '+ds+' (puste = wyczyść):',cur);
+      if(v===null) return;
+      await api('calendar_set',{user_id:STATE.cal.user,day:ds,avail_hours:v.trim()===''?'':v.replace(',','.')});
+    }
+    await loadCalendar(); renderCalendar();
+    gsStatus('✓ Zapisano');
+  }catch(e){gsStatus('⚠ '+e.message);}
+}
 
-// ═══ KONTA (tylko nadzorca, pod ⚙) ═══
+// ═══ KONTA (pod ⚙) ═══
 function toggleUserForm(){
-  const w=$('k-form-wrap'),b=$('uf-toggle');
-  const open=w.classList.contains('h');
-  w.classList.toggle('h',!open);
-  b.textContent=open?'▲ Zwiń':'＋ Dodaj konto';
-  b.className=open?'btn wn':'btn ok';
+  const w=$('k-form-wrap'),b=$('uf-toggle'); const open=w.classList.contains('h');
+  w.classList.toggle('h',!open); b.textContent=open?'▲ Zwiń':'＋ Dodaj konto'; b.className=open?'btn wn':'btn ok';
 }
 async function addUser(){
-  const email=$('k-email').value.trim();
-  const pass=$('k-pass').value;
+  const email=$('k-email').value.trim(), pass=$('k-pass').value;
   if(!email||pass.length<6){alert('Podaj e-mail i hasło (min. 6 znaków).');return;}
   gsStatus('⏳ Tworzę konto...');
   try{
     await api('user_create',{email,name:$('k-name').value.trim(),role:$('k-role').value,password:pass});
-    gsStatus('✓ Utworzono');
-    $('k-email').value='';$('k-name').value='';$('k-pass').value='';
-    toggleUserForm();
-    await loadUsers(); renderK();
+    gsStatus('✓ Utworzono'); $('k-email').value='';$('k-name').value='';$('k-pass').value='';
+    toggleUserForm(); await loadUsers(); renderK();
   }catch(e){gsStatus('⚠ '+e.message);}
 }
 async function toggleRole(id,role){
@@ -399,8 +495,7 @@ async function toggleRole(id,role){
   catch(e){gsStatus('⚠ '+e.message);}
 }
 async function resetPass(id){
-  const p=prompt('Nowe hasło (min. 6 znaków):');
-  if(p===null) return;
+  const p=prompt('Nowe hasło (min. 6 znaków):'); if(p===null) return;
   if(p.length<6){alert('Za krótkie hasło.');return;}
   gsStatus('⏳ Zapisuję...');
   try{ await api('user_update',{id,password:p}); gsStatus('✓ Zmieniono hasło'); }
@@ -420,14 +515,12 @@ function renderK(){
     <tr>
       <td style="display:flex;align-items:center;gap:8px">${whoBadge(u.id)}<span style="font-size:12px">${esc(u.name)}</span>${u.id===STATE.me.id?'<span style="font-size:9px;color:var(--mu)">(Ty)</span>':''}</td>
       <td style="font-size:11px;color:var(--mu)">${esc(u.email||'')}</td>
-      <td><span class="b ${u.role==='supervisor'?'b-dc':'b-cy'}">${u.role==='supervisor'?'nadzorca':'wykonawca'}</span></td>
-      <td>
-        <div style="display:flex;gap:4px;justify-content:flex-end;flex-wrap:wrap">
-          <button class="btn sm" onclick="toggleRole(${u.id},'${u.role}')">${u.role==='supervisor'?'→ wykonawca':'→ nadzorca'}</button>
-          <button class="btn sm" onclick="resetPass(${u.id})">🔑 hasło</button>
-          ${u.id!==STATE.me.id?`<button class="ibtn" onclick="delUser(${u.id})" title="Usuń">🗑️</button>`:''}
-        </div>
-      </td>
+      <td><span class="b ${u.role==='supervisor'?'b-dc':'b-cy'}">${u.role==='supervisor'?'admin':'pracownik'}</span></td>
+      <td><div style="display:flex;gap:4px;justify-content:flex-end;flex-wrap:wrap">
+        <button class="btn sm" onclick="toggleRole(${u.id},'${u.role}')">${u.role==='supervisor'?'→ pracownik':'→ admin'}</button>
+        <button class="btn sm" onclick="resetPass(${u.id})">🔑 hasło</button>
+        ${u.id!==STATE.me.id?`<button class="ibtn" onclick="delUser(${u.id})" title="Usuń">🗑️</button>`:''}
+      </div></td>
     </tr>`).join('');
 }
 
@@ -436,80 +529,46 @@ function setProfiles(users){
   STATE.profiles={};
   (users||[]).forEach(u=>{STATE.profiles[u.id]={name:u.name||'?',role:u.role,email:u.email};});
 }
-async function loadUsers(){
-  try{ const j=await api('users'); setProfiles(j.users); }catch(e){/* worker nie ma dostępu */}
-}
-async function loadTasks(){
-  const j=await api('tasks');
-  STATE.tasks=j.tasks||[];
-}
-async function loadTemplates(){
-  try{ const j=await api('templates'); STATE.templates=j.templates||[]; }catch(e){/* brak dostępu */}
-}
+async function loadUsers(){ try{ const j=await api('users'); setProfiles(j.users); }catch(e){} }
+async function loadTasks(){ const j=await api('tasks'); STATE.tasks=j.tasks||[]; STATE.logs=j.logs||[]; }
 async function reload(){ await loadTasks(); renderCur(); }
 
-// odświeżanie w tle — nie przeszkadzaj, gdy ktoś coś wpisuje
 function startPolling(){
   if(_poll) clearInterval(_poll);
   _poll=setInterval(async()=>{
     if(document.hidden) return;
     const ae=document.activeElement;
-    if(ae&&(ae.tagName==='INPUT'||ae.tagName==='TEXTAREA')) return;
-    try{ await loadTasks(); renderCur(); }catch(e){}
-  },6000);
+    if(ae&&(ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'||ae.tagName==='SELECT')) return;
+    if(!$('emod').classList.contains('h')||!$('nmod').classList.contains('h')) return; // modal otwarty
+    try{ await loadTasks(); if(STATE.cur!=='k') renderCur(); }catch(e){}
+  },7000);
 }
 
 // ═══ AUTH ═══
 async function doLogin(){
-  const email=$('lg-email').value.trim();
-  const pass=$('lg-pass').value;
+  const email=$('lg-email').value.trim(), pass=$('lg-pass').value;
   $('lg-err').textContent='';
   if(!email||!pass){$('lg-err').textContent='Podaj e-mail i hasło.';return;}
   $('lg-btn').disabled=true;$('lg-btn').textContent='Loguję...';
-  try{
-    const j=await api('login',{email,password:pass});
-    await enterApp(j.user);
-  }catch(e){
-    $('lg-err').textContent=e.message;
-  }finally{
-    $('lg-btn').disabled=false;$('lg-btn').textContent='Zaloguj';
-  }
+  try{ const j=await api('login',{email,password:pass}); await enterApp(j.user); }
+  catch(e){ $('lg-err').textContent=e.message; }
+  finally{ $('lg-btn').disabled=false;$('lg-btn').textContent='Zaloguj'; }
 }
-async function doLogout(){
-  try{ await api('logout',{}); }catch{}
-  location.reload();
-}
+async function doLogout(){ try{ await api('logout',{}); }catch{} location.reload(); }
 
 async function enterApp(user){
-  STATE.me=user;
-  STATE.role=user.role;
-  try{
-    const j=await api('bootstrap');
-    setProfiles(j.users);
-    STATE.tasks=j.tasks||[];
-  }catch(e){ gsStatus('⚠ '+e.message); }
-  await loadTemplates();
-
+  STATE.me=user; STATE.role=user.role;
+  try{ const j=await api('bootstrap'); setProfiles(j.users); STATE.tasks=j.tasks||[]; STATE.logs=j.logs||[]; }
+  catch(e){ gsStatus('⚠ '+e.message); }
   $('me-name').textContent=user.name||user.email;
-  const rp=$('me-role');
-  rp.textContent=isSup()?'nadzorca':'wykonawca';
-  rp.className='role-pill '+(isSup()?'sup':'wrk');
-
+  const rp=$('me-role'); rp.textContent=isSup()?'admin':'pracownik'; rp.className='role-pill '+(isSup()?'sup':'wrk');
   const cfg=$('cfgBtn'); if(cfg) cfg.classList.toggle('h',!isSup());
-
-  $('login').classList.add('h');
-  $('app').classList.remove('h');
-
-  go('a');
-  startPolling();
-  gsStatus('✓ Połączono');
+  $('login').classList.add('h'); $('app').classList.remove('h');
+  go('a'); startPolling(); gsStatus('✓ Połączono');
 }
 
 // ═══ INIT ═══
 (async()=>{
   $('lg-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
-  try{
-    const j=await api('me');
-    if(j.user) await enterApp(j.user);
-  }catch(e){/* nie zalogowany — pokaż ekran logowania */}
+  try{ const j=await api('me'); if(j.user) await enterApp(j.user); }catch(e){}
 })();

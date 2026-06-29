@@ -59,6 +59,30 @@ if (!colExists($dbName, 'templates', 'owner_id')) {
   $log[] = '✓ Migracja: dodano kolumnę owner_id w templates.';
 }
 
+// status: ENUM -> VARCHAR + mapowanie starych wartości na nowe (na_liscie/trwajace/zawieszone/zamkniete)
+try {
+  db()->exec("ALTER TABLE tasks MODIFY status VARCHAR(20) NOT NULL DEFAULT 'na_liscie'");
+  $m  = db()->exec("UPDATE tasks SET status='na_liscie' WHERE status='oczekiwanie'");
+  $m += db()->exec("UPDATE tasks SET status='trwajace'  WHERE status='w_realizacji'");
+  $m += db()->exec("UPDATE tasks SET status='zamkniete' WHERE status IN ('ukonczone','nie_potrzeby')");
+  db()->exec("UPDATE tasks SET priority='5' WHERE priority NOT REGEXP '^[0-9]+\$'");
+  if ($m > 0) $log[] = "✓ Migracja: zaktualizowano statusy zadań ($m).";
+} catch (Throwable $e) { $log[] = '• status: ' . $e->getMessage(); }
+
+// przeniesienie historii godzin z ukończonych zadań do work_log (jednorazowo, gdy pusty)
+try {
+  $wl = (int)db()->query('SELECT COUNT(*) FROM work_log')->fetchColumn();
+  if ($wl === 0) {
+    $n = db()->exec(
+      "INSERT INTO work_log (task_id, worker_id, work_date, hours)
+       SELECT id, COALESCE(owner_id, completed_by), completed_date, hours FROM tasks
+       WHERE status='zamkniete' AND completed_date IS NOT NULL AND hours IS NOT NULL
+         AND COALESCE(owner_id, completed_by) IS NOT NULL"
+    );
+    if ($n > 0) $log[] = "✓ Migracja: przeniesiono $n wpisów godzin do work_log.";
+  }
+} catch (Throwable $e) { $log[] = '• work_log seed: ' . $e->getMessage(); }
+
 // 2) Konta
 $created = 0;
 foreach (cfg()['install_users'] ?? [] as $u) {
