@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>e-Sylwester — koncept odświeżenia</title>
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --brand:#00a2f2;
+    --brand-d:#0084c7;
+    --navy:#0b1f33;
+    --navy-2:#12304d;
+    --gold:#f4c04d;
+    --ink:#1d2b39;
+    --muted:#6b7b8c;
+    --line:#e6edf3;
+    --bg:#f6f9fc;
+    --ok:#12a150;
+    --ok-bg:#e7f7ee;
+    --hot:#e5484d;
+    --hot-bg:#fdecec;
+    --radius:16px;
+    --shadow:0 10px 30px -12px rgba(11,31,51,.18);
+    --shadow-sm:0 4px 14px -6px rgba(11,31,51,.16);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Lato',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:var(--bg);line-height:1.55;-webkit-font-smoothing:antialiased}
+  a{text-decoration:none;color:inherit}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 22px}
+
+  /* NAV */
+  header.nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.9);backdrop-filter:saturate(150%) blur(8px);border-bottom:1px solid var(--line)}
+  .nav-inner{display:flex;align-items:center;gap:26px;height:70px}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:900;font-size:22px;color:var(--navy)}
+  .logo .dot{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--brand),#4bd0ff);display:grid;place-items:center;color:#fff;font-size:18px;box-shadow:var(--shadow-sm)}
+  .logo b{color:var(--brand)}
+  nav.menu{margin-left:auto;display:flex;gap:24px;align-items:center;font-weight:700;font-size:15px}
+  nav.menu a{color:#41576b;transition:.2s}
+  nav.menu a:hover{color:var(--brand)}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border-radius:999px;font-weight:800;font-size:15px;border:0;cursor:pointer;transition:.2s;white-space:nowrap}
+  .btn-primary{background:linear-gradient(135deg,var(--brand),var(--brand-d));color:#fff;box-shadow:0 8px 20px -8px rgba(0,162,242,.7)}
+  .btn-primary:hover{transform:translateY(-1px)}
+  .btn-ghost{background:#eef6fc;color:var(--brand-d)}
+
+  /* HERO */
+  .hero{position:relative;overflow:hidden;background:radial-gradient(1200px 500px at 80% -10%,#12304d 0%,#0b1f33 55%,#081726 100%);color:#fff;padding:64px 0 120px}
+  .hero:before{content:"";position:absolute;inset:0;background-image:radial-gradient(2px 2px at 20% 30%,rgba(255,255,255,.5),transparent),radial-gradient(2px 2px at 70% 20%,rgba(244,192,77,.7),transparent),radial-gradient(1.5px 1.5px at 40% 60%,rgba(255,255,255,.4),transparent),radial-gradient(2px 2px at 85% 55%,rgba(255,255,255,.35),transparent);opacity:.7}
+  .hero .wrap{position:relative}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;background:rgba(244,192,77,.15);border:1px solid rgba(244,192,77,.4);color:var(--gold);font-weight:800;font-size:13px;letter-spacing:.04em;padding:7px 14px;border-radius:999px;text-transform:uppercase}
+  .hero h1{font-size:52px;line-height:1.05;font-weight:900;margin:18px 0 12px;letter-spacing:-.02em}
+  .hero h1 span{background:linear-gradient(120deg,var(--brand),var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p.lead{font-size:19px;color:#c6d4e2;max-width:620px;margin:0 0 30px}
+
+  /* SEARCH */
+  .search{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;display:grid;grid-template-columns:1.4fr 1fr 1fr auto;gap:12px;color:var(--ink)}
+  .field{display:flex;flex-direction:column;gap:4px;text-align:left}
+  .field label{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;padding-left:4px}
+  .field select,.field input{border:1px solid var(--line);background:#fbfdff;border-radius:12px;padding:12px 14px;font-size:15px;font-family:inherit;color:var(--ink);outline:none}
+  .field select:focus,.field input:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(0,162,242,.15)}
+  .search .btn{align-self:end;height:46px;justify-content:center}
+
+  /* SECTION */
+  section{padding:56px 0}
+  .sec-head{text-align:center;max-width:640px;margin:0 auto 34px}
+  .sec-head h2{font-size:32px;font-weight:900;margin:0 0 8px;letter-spacing:-.01em}
+  .sec-head p{color:var(--muted);font-size:17px;margin:0}
+  .pull-up{margin-top:-84px;position:relative;z-index:5}
+
+  /* CHIPS */
+  .chips{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+  .chip{background:#fff;border:1px solid var(--line);border-radius:999px;padding:9px 16px;font-weight:700;font-size:14px;color:#41576b;box-shadow:var(--shadow-sm);transition:.18s;display:flex;align-items:center;gap:7px}
+  .chip:hover{border-color:var(--brand);color:var(--brand-d);transform:translateY(-2px)}
+  .chip b{color:var(--brand)}
+  .chip .n{background:#eef6fc;color:var(--brand-d);border-radius:8px;padding:1px 8px;font-size:12px;font-weight:800}
+  .chip.hot{border-color:rgba(229,72,77,.35);color:var(--hot)}
+  .chip.hot .n{background:var(--hot-bg);color:var(--hot)}
+
+  /* PACKAGES */
+  .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:26px 22px;box-shadow:var(--shadow-sm);position:relative;transition:.2s;display:flex;flex-direction:column}
+  .card:hover{transform:translateY(-4px);box-shadow:var(--shadow)}
+  .card.pop{border-color:var(--brand);box-shadow:0 16px 40px -16px rgba(0,162,242,.5)}
+  .ribbon{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--brand),var(--brand-d));color:#fff;font-size:12px;font-weight:800;letter-spacing:.03em;padding:6px 14px;border-radius:999px;text-transform:uppercase;white-space:nowrap;box-shadow:var(--shadow-sm)}
+  .card .tier{font-size:13px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--brand-d)}
+  .card.gold .tier{color:#c79413}
+  .card .price{font-size:34px;font-weight:900;margin:8px 0 2px}
+  .card .price small{font-size:15px;font-weight:700;color:var(--muted)}
+  .card .brutto{font-size:13px;color:var(--muted);margin-bottom:16px}
+  .card ul{list-style:none;padding:0;margin:0 0 22px;display:flex;flex-direction:column;gap:10px}
+  .card li{display:flex;gap:9px;font-size:14.5px;color:#33475b}
+  .card li i{color:var(--ok);font-style:normal;font-weight:900;margin-top:1px}
+  .card .btn{margin-top:auto;justify-content:center}
+
+  /* AVAILABILITY TABLE */
+  .avail{background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-sm);overflow:hidden}
+  .avail h3{margin:0;padding:20px 24px;font-size:18px;font-weight:900;background:linear-gradient(135deg,#f3f9ff,#eaf5ff);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+  .avail h3 .ic{width:30px;height:30px;border-radius:9px;background:var(--brand);color:#fff;display:grid;place-items:center;font-size:15px}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 24px;border-bottom:1px solid #f1f5f9}
+  .row:last-child{border-bottom:0}
+  .row:nth-child(even){background:#fbfdff}
+  .place{display:flex;align-items:center;gap:14px}
+  .place .rank{width:30px;height:30px;border-radius:9px;background:#eef3f8;color:#41576b;font-weight:900;display:grid;place-items:center;font-size:14px}
+  .place .lbl{font-weight:700}
+  .place .lbl small{display:block;font-weight:500;color:var(--muted);font-size:12.5px}
+  .right{display:flex;align-items:center;gap:16px}
+  .cost{font-weight:800;font-size:15px}
+  .badge{font-weight:800;font-size:13px;padding:6px 13px;border-radius:999px;display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+  .badge:before{content:"";width:8px;height:8px;border-radius:50%}
+  .badge.free{background:var(--ok-bg);color:var(--ok)}
+  .badge.free:before{background:var(--ok)}
+  .badge.pre{background:#fff5e6;color:#b9770a}
+  .badge.pre:before{background:var(--gold)}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
+
+  /* FOOTER */
+  footer{background:var(--navy);color:#c6d4e2;padding:44px 0 28px;margin-top:20px}
+  footer .cols{display:flex;justify-content:space-between;flex-wrap:wrap;gap:24px;padding-bottom:26px;border-bottom:1px solid rgba(255,255,255,.1)}
+  footer h4{color:#fff;font-size:16px;margin:0 0 12px}
+  footer a{display:block;color:#9fb2c4;padding:4px 0;transition:.2s}
+  footer a:hover{color:var(--brand)}
+  footer .copy{padding-top:18px;font-size:13px;color:#7f93a6;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+
+  @media(max-width:900px){
+    .search{grid-template-columns:1fr 1fr}
+    .cards{grid-template-columns:1fr 1fr}
+    .grid2{grid-template-columns:1fr}
+    .hero h1{font-size:38px}
+    nav.menu{display:none}
+  }
+  @media(max-width:560px){
+    .search{grid-template-columns:1fr}
+    .cards{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="logo" href="#"><span class="dot">✦</span> e<b>Sylwester</b></a>
+    <nav class="menu">
+      <a href="#">Oferty</a>
+      <a href="#">Kategorie</a>
+      <a href="#">Cennik</a>
+      <a href="#">Pomoc</a>
+      <a href="#">Kontakt</a>
+    </nav>
+    <a class="btn btn-primary" href="#">+ Dodaj ofertę</a>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <span class="eyebrow">🎉 Sezon 2026 / 2027</span>
+    <h1>Najlepsze oferty na <span>Sylwestra</span><br>w jednym miejscu</h1>
+    <p class="lead">Bale, imprezy, pobyty z noclegiem, wyjazdy w góry, nad morze i za granicę. Znajdź swój idealny wieczór lub dodaj własną ofertę.</p>
+
+    <div class="search">
+      <div class="field">
+        <label>Kierunek</label>
+        <select><option>Polska</option><option>Włochy</option><option>Egipt</option><option>Hiszpania</option><option>Turcja</option></select>
+      </div>
+      <div class="field">
+        <label>Miejscowość</label>
+        <input type="text" placeholder="np. Zakopane">
+      </div>
+      <div class="field">
+        <label>Budżet do</label>
+        <select><option>2000 zł</option><option>1000 zł</option><option>5000 zł</option><option>10000 zł</option></select>
+      </div>
+      <button class="btn btn-primary">🔍 Szukaj</button>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap pull-up" style="background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:26px">
+    <div class="chips">
+      <a class="chip" href="#"><b>Sylwester w górach</b><span class="n">103</span></a>
+      <a class="chip hot" href="#">Sylwester dla Singli<span class="n">30</span></a>
+      <a class="chip" href="#">Sylwester w Zakopanem<span class="n">49</span></a>
+      <a class="chip" href="#">Z noclegiem<span class="n">155</span></a>
+      <a class="chip" href="#">Nad morzem<span class="n">42</span></a>
+      <a class="chip" href="#">Z kuligiem<span class="n">55</span></a>
+      <a class="chip" href="#">SPA<span class="n">26</span></a>
+      <a class="chip" href="#">Za granicą<span class="n">57</span></a>
+      <a class="chip" href="#">Dla studentów<span class="n">33</span></a>
+      <a class="chip" href="#" style="color:var(--brand);font-weight:800">Pokaż wszystkie →</a>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>Wybierz pakiet dla swojej oferty</h2>
+      <p>Dodaj ofertę i docieraj do tysięcy sylwestrowiczów. Wysokie pozycje w Google gwarantowane.</p>
+    </div>
+    <div class="cards">
+      <div class="card">
+        <div class="tier">Podstawowy</div>
+        <div class="price">149<small> zł netto</small></div>
+        <div class="brutto">183,27 zł brutto · do końca roku</div>
+        <ul>
+          <li><i>✓</i> 1 oferta do jednej strony www</li>
+          <li><i>✓</i> Widoczność w kategoriach</li>
+          <li><i>✓</i> Ważność do końca sezonu</li>
+        </ul>
+        <a class="btn btn-ghost" href="#">Wybierz</a>
+      </div>
+      <div class="card">
+        <div class="tier">Srebrny</div>
+        <div class="price">199<small> zł netto</small></div>
+        <div class="brutto">244,77 zł brutto · do końca roku</div>
+        <ul>
+          <li><i>✓</i> Do 3 ofert</li>
+          <li><i>✓</i> 1 oferta wyróżniona (szare tło)</li>
+          <li><i>✓</i> Wyżej niż pakiet podstawowy</li>
+        </ul>
+        <a class="btn btn-ghost" href="#">Wybierz</a>
+      </div>
+      <div class="card pop gold">
+        <div class="ribbon">Najczęściej wybierany</div>
+        <div class="tier">Złoty</div>
+        <div class="price">249<small> zł netto</small></div>
+        <div class="brutto">306,27 zł brutto · do końca roku</div>
+        <ul>
+          <li><i>✓</i> Do 5 ofert</li>
+          <li><i>✓</i> 3 oferty na „złotym" tle</li>
+          <li><i>✓</i> Wyróżnienie w prawej kolumnie</li>
+        </ul>
+        <a class="btn btn-primary" href="#">Wybierz Złoty</a>
+      </div>
+      <div class="card">
+        <div class="tier">Platynowy</div>
+        <div class="price">od 1249<small> zł</small></div>
+        <div class="brutto">Pozycje „Polecamy" 1 i 2 od góry</div>
+        <ul>
+          <li><i>✓</i> Wszystko z pakietu Złotego</li>
+          <li><i>✓</i> Najwyższa widoczność w serwisie</li>
+          <li><i>✓</i> Ograniczona liczba slotów</li>
+        </ul>
+        <a class="btn btn-ghost" href="#">Zapytaj o dostępność</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:8px">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>Dostępność pierwszych miejsc</h2>
+      <p>Rezerwuj najlepsze pozycje na górze kategorii i na stronie głównej. Status na żywo.</p>
+    </div>
+
+    <div class="grid2">
+      <div class="avail">
+        <h3><span class="ic">⛰️</span> Sylwester w górach</h3>
+        <div class="row"><div class="place"><span class="rank">1</span><span class="lbl">Miejsce 1</span></div><div class="right"><span class="cost">1500 zł</span><span class="badge pre">wstępnie zarezerwowane</span></div></div>
+        <div class="row"><div class="place"><span class="rank">2</span><span class="lbl">Miejsce 2</span></div><div class="right"><span class="cost">1300 zł</span><span class="badge pre">wstępnie zarezerwowane</span></div></div>
+        <div class="row"><div class="place"><span class="rank">3</span><span class="lbl">Miejsce 3</span></div><div class="right"><span class="cost">1100 zł</span><span class="badge pre">wstępnie zarezerwowane</span></div></div>
+        <div class="row"><div class="place"><span class="rank">4</span><span class="lbl">Miejsce 4</span></div><div class="right"><span class="cost">1000 zł</span><span class="badge pre">wstępnie zarezerwowane</span></div></div>
+        <div class="row"><div class="place"><span class="rank">5</span><span class="lbl">Miejsce 5</span></div><div class="right"><span class="cost">900 zł</span><span class="badge pre">wstępnie zarezerwowane</span></div></div>
+        <div class="row"><div class="place"><span class="rank">6</span><span class="lbl">Miejsce 6</span></div><div class="right"><span class="cost">800 zł</span><span class="badge pre">wstępnie zarezerwowane</span></div></div>
+      </div>
+
+      <div class="avail">
+        <h3><span class="ic">⭐</span> Strona główna</h3>
+        <div class="row"><div class="place"><span class="rank">1</span><span class="lbl">Miejsce 1<small>maksymalna widoczność</small></span></div><div class="right"><span class="cost">3200 zł</span><span class="badge free">wolne</span></div></div>
+        <div class="row"><div class="place"><span class="rank">2</span><span class="lbl">Miejsce 2</span></div><div class="right"><span class="cost">3100 zł</span><span class="badge free">wolne</span></div></div>
+        <div class="row"><div class="place"><span class="rank">3</span><span class="lbl">Miejsce 3</span></div><div class="right"><span class="cost">3000 zł</span><span class="badge free">wolne</span></div></div>
+        <div class="row"><div class="place"><span class="rank">4</span><span class="lbl">Miejsce 4</span></div><div class="right"><span class="cost">2900 zł</span><span class="badge free">wolne</span></div></div>
+        <div class="row"><div class="place"><span class="rank">5</span><span class="lbl">Miejsce 5</span></div><div class="right"><span class="cost">2500 zł</span><span class="badge free">wolne</span></div></div>
+        <div class="row"><div class="place"><span class="rank">6</span><span class="lbl">Miejsce 6</span></div><div class="right"><span class="cost">2400 zł</span><span class="badge free">wolne</span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="cols">
+      <div style="max-width:280px">
+        <a class="logo" href="#" style="color:#fff"><span class="dot">✦</span> e<b style="color:var(--brand)">Sylwester</b></a>
+        <p style="color:#9fb2c4;margin-top:12px">Baza ofert sylwestrowych 2026/2027 — bale, wyjazdy i pobyty w całej Polsce i za granicą.</p>
+      </div>
+      <div><h4>Serwis</h4><a href="#">Oferty sylwestrowe</a><a href="#">Cennik</a><a href="#">Dodaj ofertę</a></div>
+      <div><h4>Pomoc</h4><a href="#">FAQ</a><a href="#">Regulamin</a><a href="#">Kontakt</a></div>
+      <div><h4>Kontakt</h4><a href="#">info@e-Sylwester.pl</a><a href="#">tel. 501 120 414</a><a href="#">Facebook</a></div>
+    </div>
+    <div class="copy"><span>© 2026–2027 e-Sylwester</span><span>Koncept odświeżenia graficznego</span></div>
+  </div>
+</footer>
+
+</body>
+</html>
