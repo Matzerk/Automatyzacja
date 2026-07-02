@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>e-Sylwester — stara wizja z lekkim dopieszczeniem</title>
+<link rel="stylesheet" href="_preview_assets/bootstrap.min.css">
+<style>
+  /* === Baza jak w oryginale === */
+  body{font-family:'Lato','Segoe UI',Arial,sans-serif;color:#333;background:#fff;font-size:14px}
+  .container{max-width:1170px}
+  a{color:#00a2f2}
+  a:hover{color:#0084c7}
+
+  /* === Górny pasek / menu (skromny, jak dawniej) — lekko dopieszczony === */
+  .topbar{border-bottom:1px solid #eee;background:#fff}
+  .topbar .inner{display:flex;align-items:center;height:64px}
+  .brand{font-size:22px;font-weight:700;color:#00a2f2}
+  .brand span{color:#333}
+  .mainmenu{margin-left:auto;list-style:none;display:flex;gap:22px;margin:0;padding:0}
+  .mainmenu a{color:#444;font-weight:700;font-size:14px}
+  .mainmenu a:hover{color:#00a2f2}
+  .mainmenu .add{color:red}
+
+  /* === Baner === */
+  .baner{background:#f4f4f2;border:1px solid #e6e6e6;border-radius:6px;height:150px;display:flex;align-items:center;justify-content:center;color:#9aa;margin:18px 0;font-size:13px}
+
+  /* === Wyszukiwarka (dopieszczona: zaokrąglenia, odstępy) === */
+  .searchbox{background:#f7f9fb;border:1px solid #e3e9ee;border-radius:8px;padding:16px;margin-bottom:26px}
+  .searchbox label{font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#8a97a4;font-weight:700;margin-bottom:4px;display:block}
+  .searchbox .form-control{border-radius:6px;height:42px;border-color:#dbe3ea}
+  .searchbox .btn-search{background:#00a2f2;border:0;color:#fff;font-weight:700;border-radius:6px;height:42px;width:100%;margin-top:22px}
+  .searchbox .btn-search:hover{background:#0084c7}
+
+  /* === Linki kategorii (jak dawniej: małe niebieskie, siatka) — hover === */
+  .kat-title{font-weight:700;color:#333;margin:6px 0 12px}
+  .xgorne_linki{margin:0 0 8px}
+  .xgorne_linki a{font-size:13.5px;color:#00a2f2;border-bottom:1px dotted transparent;padding-bottom:1px}
+  .xgorne_linki a:hover{border-bottom-color:#00a2f2}
+  .xgorne_linki .cnt{color:#8a97a4;font-size:12px}
+  .kat-red{color:red;font-weight:700}
+
+  /* === Nagłówki pakietów (pomarańcz jak oryginał) === */
+  .h-oferta{text-align:center;font-weight:700}
+  .orange{color:#FF8C00}
+  .redp{color:red}
+
+  /* === Pasek pakietów (szary, jak dawniej) — lekko zaokrąglony === */
+  .pkg-bar{display:flex;gap:4px;background:#b3b3b3;padding:6px;border-radius:8px;margin:26px 0}
+  .pkg-bar .cell{flex:1;text-align:center;padding:12px 8px;border-radius:6px;font-size:13px;line-height:1.4}
+  .pkg-bar .cell:nth-child(odd){background:#d7d7d7}
+  .pkg-bar .cell:nth-child(even){background:#e6e6e6}
+  .pkg-bar .cell a{color:#333;font-weight:700}
+  .pkg-bar .cell small{color:#555;display:block;margin-top:3px}
+
+  /* === Sekcje pakietów === */
+  .pkg{padding:18px 20px;border:1px solid #eee;border-radius:8px;margin:0 0 16px;background:#fff}
+  .pkg h3{margin:0 0 6px;font-size:17px}
+  .pkg ol,.pkg ul{margin:8px 0 0 22px;padding:0}
+  .pkg li{margin:6px 0}
+  .pkg .thumb{background:#f4f4f2;border:1px dashed #d8d8d8;border-radius:6px;color:#9aa;text-align:center;padding:22px;margin-top:12px;font-size:12px}
+  .pkg.pop{border-color:#ffd48a;box-shadow:0 2px 0 #ffe9c2 inset}
+  .tagpop{display:inline-block;background:#FF8C00;color:#fff;font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;margin-left:8px;vertical-align:middle}
+
+  /* === Dostępność miejsc (listy jak dawniej) === */
+  .avail-title{text-align:center;font-weight:700;margin:26px 0 14px}
+  .avail{border:1px solid #eee;border-radius:8px;overflow:hidden;margin-bottom:20px}
+  .avail .hd{background:#f2f7fb;border-bottom:1px solid #e6eef5;padding:12px 16px;font-weight:700}
+  .avail ul{list-style:none;margin:0;padding:0}
+  .avail li{display:flex;align-items:center;justify-content:space-between;padding:11px 16px;border-bottom:1px solid #f3f3f3;font-size:14px}
+  .avail li:last-child{border-bottom:0}
+  .avail li:nth-child(even){background:#fbfcfd}
+  .avail .msc{color:#333}
+  .avail .msc b{color:#111}
+  .avail .cena{color:#555;margin-left:auto;margin-right:14px;font-weight:700}
+  /* Dopieszczenie: status jako subtelna „pastylka”, ale nadal czerwony/zielony jak dawniej */
+  .st{font-weight:700;font-size:12.5px;padding:3px 10px;border-radius:999px;white-space:nowrap}
+  .st-free{color:#1a8a4b;background:#eaf7ef}
+  .st-pre{color:#c0392b;background:#fdeeec}
+
+  /* === Stopka (skromna) === */
+  footer{border-top:1px solid #eee;margin-top:30px;padding:22px 0;color:#777;font-size:13px}
+  footer a{color:#00a2f2}
+  .foot-flex{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+
+  h2.sec{font-size:22px;font-weight:700;text-align:center;margin:8px 0 4px}
+  p.sec-sub{text-align:center;color:#888;margin:0 0 6px}
+</style>
+</head>
+<body>
+
+<!-- TOP -->
+<div class="topbar">
+  <div class="container inner">
+    <div class="brand">e-<span>Sylwester</span></div>
+    <ul class="mainmenu">
+      <li><a href="#">Oferty sylwestrowe</a></li>
+      <li><a href="#">Kategorie</a></li>
+      <li><a class="add" href="#">Dodaj ofertę</a></li>
+      <li><a href="#">Cennik</a></li>
+      <li><a href="#">Pomoc</a></li>
+      <li><a href="#">Kontakt</a></li>
+    </ul>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="baner">baner reklamowy 1170×145</div>
+
+  <!-- SZUKAJ -->
+  <div class="searchbox">
+    <div class="row">
+      <div class="col-sm-3 col-xs-6"><label>Kraj</label><select class="form-control"><option>Polska</option><option>Włochy</option><option>Egipt</option></select></div>
+      <div class="col-sm-3 col-xs-6"><label>Miejscowość</label><input type="text" class="form-control" placeholder="miejscowość"></div>
+      <div class="col-sm-2 col-xs-6"><label>Cena od</label><select class="form-control"><option>50 zł</option><option>100 zł</option></select></div>
+      <div class="col-sm-2 col-xs-6"><label>Cena do</label><select class="form-control"><option>10000 zł</option><option>2000 zł</option></select></div>
+      <div class="col-sm-2 col-xs-12"><button class="btn-search">SZUKAJ</button></div>
+    </div>
+  </div>
+
+  <!-- KATEGORIE -->
+  <div class="kat-title">Popularne kategorie</div>
+  <div class="row">
+    <div class="col-sm-3 col-xs-6"><p class="xgorne_linki"><a href="#"><strong>Sylwester w górach</strong></a> <span class="cnt">(103)</span></p></div>
+    <div class="col-sm-3 col-xs-6"><p class="xgorne_linki"><a href="#" class="kat-red">Sylwester dla Singli</a> <span class="cnt">(30)</span></p></div>
+    <div class="col-sm-3 col-xs-6"><p class="xgorne_linki"><a href="#">Sylwester w Zakopanem</a> <span class="cnt">(49)</span></p></div>
+    <div class="col-sm-3 col-xs-6"><p class="xgorne_linki"><a href="#">Sylwester z noclegiem</a> <span class="cnt">(155)</span></p></div>
+    <div class="col-sm-3 col-xs-6"><p class="xgorne_linki"><a href="#">Sylwester nad morzem</a> <span class="cnt">(42)</span></p></div>
+    <div class="col-sm-3 col-xs-6"><p class="xgorne_linki"><a href="#">Sylwester z kuligiem</a> <span class="cnt">(55)</span></p></div>
+    <div class="col-sm-3 col-xs-6"><p class="xgorne_linki"><a href="#">Sylwester w SPA</a> <span class="cnt">(26)</span></p></div>
+    <div class="col-sm-3 col-xs-6"><p class="xgorne_linki"><a href="#">Sylwester dla studentów</a> <span class="cnt">(33)</span></p></div>
+  </div>
+
+  <hr>
+
+  <!-- PAKIETY: pasek jak dawniej -->
+  <h2 class="sec">Jak dodać ofertę sylwestrową do serwisu?</h2>
+  <p class="sec-sub">Oferujemy 4 pakiety — wybierz odpowiedni dla siebie.</p>
+
+  <div class="pkg-bar">
+    <div class="cell"><a href="#">Pakiet Podstawowy</a><small>149,00 zł netto</small></div>
+    <div class="cell"><a href="#">Pakiet Srebrny</a><small>199,00 zł netto</small></div>
+    <div class="cell"><a href="#">Pakiet Złoty</a><small>249,00 zł netto</small></div>
+    <div class="cell"><a href="#">Pakiet Platynowy</a><small>od 1249 zł netto</small></div>
+    <div class="cell"><a href="#">Kategorie</a><small>wyróżnione</small></div>
+    <div class="cell"><a href="#">Baner</a><small>główny</small></div>
+  </div>
+
+  <div class="pkg">
+    <h3><span class="orange">PAKIET PODSTAWOWY</span> – <span class="redp">149,00 zł netto do końca roku</span> (183,27 zł brutto)</h3>
+    <ol><li>Maksymalnie <strong>1 oferta</strong> odsyłająca do jednej strony www.</li></ol>
+  </div>
+
+  <div class="pkg">
+    <h3><span class="orange">PAKIET SREBRNY</span> – <span class="redp">199,00 zł netto do końca roku</span> (244,77 zł brutto)</h3>
+    <ol>
+      <li>Maksymalnie <strong>3 oferty</strong> odsyłające do jednej strony www.</li>
+      <li><strong>1 oferta (teksty na szarym tle)</strong> wyróżniona na stronach kategorii.</li>
+    </ol>
+  </div>
+
+  <div class="pkg pop">
+    <h3><span class="orange">PAKIET ZŁOTY</span> – <span class="redp">249,00 zł netto do końca roku</span> (306,27 zł brutto) <span class="tagpop">najczęściej wybierany</span></h3>
+    <ol>
+      <li>Maksymalnie <strong>5 ofert</strong> odsyłających do jednej strony www.</li>
+      <li><strong>3 oferty na „złotym" tle</strong> wyróżnione na stronach kategorii.</li>
+      <li>Wyróżnienie w prawej kolumnie – 3 i 4 pozycja od góry.</li>
+    </ol>
+    <div class="thumb">podgląd wyróżnienia „Polecamy 3–4"</div>
+  </div>
+
+  <div class="pkg">
+    <h3><span class="orange">PAKIET PLATYNOWY</span> – <span class="redp">od 1249,00 zł netto do końca roku</span></h3>
+    <ul>
+      <li>Wszystko to, co zawiera pakiet złoty.</li>
+      <li><strong>DODATKOWO:</strong> wyróżnienie pod „Polecamy" na 1 i 2 pozycji od góry.</li>
+    </ul>
+  </div>
+
+  <!-- DOSTĘPNOŚĆ -->
+  <div class="avail-title">Rezerwacja pierwszych miejsc ofertowych</div>
+  <div class="row">
+    <div class="col-sm-6">
+      <div class="avail">
+        <div class="hd">Sylwester w górach</div>
+        <ul>
+          <li><span class="msc"><b>1 miejsce</b> (do końca roku)</span><span class="cena">1500 zł netto</span><span class="st st-pre">wstępnie zarezerwowane</span></li>
+          <li><span class="msc"><b>2 miejsce</b> (do końca roku)</span><span class="cena">1300 zł netto</span><span class="st st-pre">wstępnie zarezerwowane</span></li>
+          <li><span class="msc"><b>3 miejsce</b> (do końca roku)</span><span class="cena">1100 zł netto</span><span class="st st-pre">wstępnie zarezerwowane</span></li>
+          <li><span class="msc"><b>4 miejsce</b> (do końca roku)</span><span class="cena">1000 zł netto</span><span class="st st-pre">wstępnie zarezerwowane</span></li>
+          <li><span class="msc"><b>5 miejsce</b> (do końca roku)</span><span class="cena">900 zł netto</span><span class="st st-pre">wstępnie zarezerwowane</span></li>
+          <li><span class="msc"><b>6 miejsce</b> (do końca roku)</span><span class="cena">800 zł netto</span><span class="st st-pre">wstępnie zarezerwowane</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="col-sm-6">
+      <div class="avail">
+        <div class="hd">Strona główna</div>
+        <ul>
+          <li><span class="msc"><b>1 miejsce</b> (do końca roku)</span><span class="cena">3200 zł netto</span><span class="st st-free">wolne</span></li>
+          <li><span class="msc"><b>2 miejsce</b> (do końca roku)</span><span class="cena">3100 zł netto</span><span class="st st-free">wolne</span></li>
+          <li><span class="msc"><b>3 miejsce</b> (do końca roku)</span><span class="cena">3000 zł netto</span><span class="st st-free">wolne</span></li>
+          <li><span class="msc"><b>4 miejsce</b> (do końca roku)</span><span class="cena">2900 zł netto</span><span class="st st-free">wolne</span></li>
+          <li><span class="msc"><b>5 miejsce</b> (do końca roku)</span><span class="cena">2500 zł netto</span><span class="st st-free">wolne</span></li>
+          <li><span class="msc"><b>6 miejsce</b> (do końca roku)</span><span class="cena">2400 zł netto</span><span class="st st-free">wolne</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="container foot-flex">
+    <span>© 2026–2027 e-Sylwester · <a href="#">Regulamin</a> · <a href="#">Pomoc</a> · <a href="#">Kontakt</a></span>
+    <span><a href="#">info@e-Sylwester.pl</a> · tel. 501 120 414</span>
+  </div>
+</footer>
+
+</body>
+</html>
