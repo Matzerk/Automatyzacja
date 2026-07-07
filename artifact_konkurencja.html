@@ -6,36 +6,10 @@
     --accent:#0a86c9; --accent-weak:#e5f2fb;
     --good:#12864f; --good-bg:#e6f6ee;
     --bad:#cf4550; --bad-bg:#fbe9ea;
+    --warn:#b07d0a; --warn-bg:#fbf1da;
     --gold:#b07d0a; --us:#e8f4fd; --us-line:#bfe0f6;
     --shadow:0 1px 2px rgba(20,40,60,.05),0 8px 24px -14px rgba(20,40,60,.25);
     --radius:14px;
-  }
-  @media (prefers-color-scheme:dark){
-    :root{
-      --bg:#0d1620; --surface:#152230; --surface-2:#101b26;
-      --ink:#e6eef5; --muted:#93a7b6; --line:#243544;
-      --accent:#3fb4ef; --accent-weak:#12293a;
-      --good:#43c184; --good-bg:#122c20;
-      --bad:#ef6e77; --bad-bg:#301518;
-      --gold:#d9a531; --us:#122a3c; --us-line:#1d445f;
-      --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -16px rgba(0,0,0,.7);
-    }
-  }
-  :root[data-theme="light"]{
-    --bg:#eef4f9; --surface:#ffffff; --surface-2:#f5f9fc;
-    --ink:#152430; --muted:#5b6d7c; --line:#e0e9f0;
-    --accent:#0a86c9; --accent-weak:#e5f2fb;
-    --good:#12864f; --good-bg:#e6f6ee; --bad:#cf4550; --bad-bg:#fbe9ea;
-    --gold:#b07d0a; --us:#e8f4fd; --us-line:#bfe0f6;
-    --shadow:0 1px 2px rgba(20,40,60,.05),0 8px 24px -14px rgba(20,40,60,.25);
-  }
-  :root[data-theme="dark"]{
-    --bg:#0d1620; --surface:#152230; --surface-2:#101b26;
-    --ink:#e6eef5; --muted:#93a7b6; --line:#243544;
-    --accent:#3fb4ef; --accent-weak:#12293a;
-    --good:#43c184; --good-bg:#122c20; --bad:#ef6e77; --bad-bg:#301518;
-    --gold:#d9a531; --us:#122a3c; --us-line:#1d445f;
-    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -16px rgba(0,0,0,.7);
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);
@@ -47,13 +21,14 @@
   .lead{font-size:17px;color:var(--muted);max-width:64ch;margin:0 0 22px}
   h2{font-size:20px;margin:44px 0 14px;letter-spacing:-.01em;display:flex;align-items:center;gap:10px}
   h2::before{content:"";width:10px;height:10px;border-radius:3px;background:var(--accent);flex:none}
+  h3.sub{font-size:15px;margin:22px 0 8px;color:var(--muted);font-weight:700}
   .note{background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--gold);
     border-radius:10px;padding:13px 16px;font-size:13.5px;color:var(--muted);margin:0 0 8px}
   .scroll{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);background:var(--surface)}
   table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:640px}
   th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
-  thead th{position:sticky;top:0;background:var(--surface-2);font-size:11.5px;text-transform:uppercase;
-    letter-spacing:.04em;color:var(--muted);font-weight:700;z-index:1}
+  thead th{background:var(--surface-2);font-size:11.5px;text-transform:uppercase;
+    letter-spacing:.04em;color:var(--muted);font-weight:700}
   tbody tr:last-child td{border-bottom:none}
   td.dim{font-weight:600;white-space:nowrap}
   .col-us{background:var(--us)}
@@ -65,31 +40,34 @@
   .sumrow td.col-us{background:var(--accent-weak)}
   .cap{font-size:12.5px;color:var(--muted);margin:8px 2px 0}
   .type-pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--accent-weak);color:var(--accent);white-space:nowrap}
+  .num{font-variant-numeric:tabular-nums;text-align:center;font-weight:700}
+  .bd{color:var(--muted);font-style:italic}
+  /* priorytet */
+  .pri td{vertical-align:middle}
+  .wbar{position:relative;height:22px;background:var(--surface-2);border-radius:6px;overflow:hidden;min-width:120px;border:1px solid var(--line)}
+  .wbar > span{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,var(--accent),#4bd0ff);border-radius:6px}
+  .wbar > b{position:absolute;right:8px;top:0;line-height:22px;font-size:12px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
+  .rank{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:8px;background:var(--accent);color:#fff;font-weight:800;font-size:13px}
   .cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
   .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow)}
-  .card h3{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:8px}
+  .card h3{margin:0 0 4px;font-size:15px}
   .card.gap h3{color:var(--bad)} .card.win h3{color:var(--good)}
   .card ul{margin:6px 0 0;padding-left:18px} .card li{margin:6px 0;font-size:13.5px}
-  ol.rec{list-style:none;counter-reset:r;margin:0;padding:0;display:grid;gap:10px}
-  ol.rec li{counter-increment:r;background:var(--surface);border:1px solid var(--line);border-radius:12px;
-    padding:12px 14px 12px 50px;position:relative;box-shadow:var(--shadow);font-size:14px}
-  ol.rec li::before{content:counter(r);position:absolute;left:12px;top:12px;width:26px;height:26px;
-    display:grid;place-items:center;border-radius:8px;background:var(--accent);color:#fff;font-weight:800;font-size:13px}
   .tag{display:inline-block;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;
     padding:2px 7px;border-radius:6px;background:var(--accent-weak);color:var(--accent);margin-left:6px;vertical-align:1px}
   .src{font-size:13px;color:var(--muted);line-height:2}
   .src a{color:var(--accent);text-decoration:none;border-bottom:1px solid transparent}
   .src a:hover{border-bottom-color:var(--accent)}
-  a:focus-visible,li:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+  a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
   @media (max-width:660px){.cols{grid-template-columns:1fr}}
 </style>
 
 <div class="wrap">
   <p class="eyebrow">Analiza rynku · lipiec 2026</p>
   <h1>Konkurencja e-sylwester.pl</h1>
-  <p class="lead">Porównanie z serwisami wysoko widocznymi w Google na frazy „oferty sylwestrowe / sylwester w górach / nad morzem" — funkcje, model biznesowy i cennik dla obiektów.</p>
+  <p class="lead">Porównanie z serwisami wysoko widocznymi w Google na frazy „oferty sylwestrowe / sylwester w górach / nad morzem" — funkcje, model biznesowy, ujednolicona wycena i priorytety zmian.</p>
 
-  <div class="note"><strong>Metodyka i zastrzeżenia:</strong> dane z wyników wyszukiwarki oraz analizy własnego kodu e-sylwester.pl — bezpośrednie pobieranie stron konkurentów było zablokowane, więc część komórek („mapa", „newsletter") to najlepsze oszacowanie. Scoring 1/0 mierzy <strong>szerokość funkcji</strong>, nie rentowność; serwisy mają różne modele (katalog reklamowy vs OTA z rezerwacją vs bezpośredni organizator).</div>
+  <div class="note"><strong>Metodyka i zastrzeżenia:</strong> dane z wyników wyszukiwarki oraz analizy własnego kodu e-sylwester.pl — bezpośrednie pobieranie stron konkurentów było zablokowane, więc część komórek („mapa", „newsletter", niejawne cenniki) to najlepsze oszacowanie (<span class="bd">b.d.</span> = brak potwierdzenia). Scoring 1/0 mierzy <strong>szerokość funkcji</strong>, nie rentowność.</div>
 
   <h2>Kim są konkurenci</h2>
   <div class="scroll"><table>
@@ -129,55 +107,74 @@
   </table></div>
   <p class="cap">1 = funkcja obecna / dobrze zrobiona · 0 = brak lub słabo. „twojsylwester" to bezpośredni organizator (inny model) — niższy wynik nie znaczy słabszy biznes.</p>
 
-  <h2>Model i cennik dla obiektów</h2>
+  <h2>Ujednolicona wycena — za co i ile płaci obiekt</h2>
+  <p class="cap" style="margin-bottom:12px">Różne modele sprowadzone do wspólnych „opcji zakupowych". Ceny e-sylwester = pewne; u konkurencji część cenników niejawna (<span class="bd">b.d.</span>) — wpisano znany model.</p>
   <div class="scroll"><table>
-    <thead><tr><th>Serwis</th><th>Model zarabiania</th><th>Pobiera od obiektu?</th><th>Konkretne ceny / warunki</th></tr></thead>
+    <thead><tr><th>Opcja (za co płaci obiekt)</th><th class="col-us">e-sylwester.pl</th><th>sylwester.pl</th><th>nocowanie</th><th>e-turysta</th><th>wgory</th><th>romant.W</th></tr></thead>
     <tbody>
-      <tr><td class="dim col-us">e-sylwester.pl</td><td>Płatny katalog ogłoszeń (link do WWW), bez rezerwacji online</td><td><strong>TAK — z góry</strong></td><td>Pakiety netto: Podstawowy 149 · Srebrny 199 · Złoty 249 · Platynowy 1249–1799. TOP w kategorii 400–1500. TOP na stronie gł. 2200–3200. Baner 2500/⅓. Przelew, do końca sezonu.</td></tr>
-      <tr><td class="dim">sylwester.pl</td><td>Rezerwacja online + sprzedaż biletów; płatne Premium/VIP</td><td>TAK (wyróżnienia, bilety)</td><td>Rezerwacja: karta lub 30% zaliczki online, darmowa anulacja do 5 dni. Cennik Premium/VIP niejawny.</td></tr>
-      <tr><td class="dim">sylwester.nocowanie.pl</td><td>OTA — prowizja od rezerwacji</td><td>TAK — prowizja</td><td><strong>~10%</strong> kwoty rezerwacji (zależnie od abonamentu); wypłata do właściciela tego samego dnia. Weryfikacja dokumentów.</td></tr>
-      <tr><td class="dim">romantycznyweekend.eu</td><td>Pakiety; prezentację tworzy redakcja; zapytania mail/tel/link</td><td>TAK (warunki niejawne)</td><td>Nielimitowana liczba pakietów/rok. Cennik/prowizja niejawne (kontakt: /dodajobiekt).</td></tr>
-      <tr><td class="dim">e-turysta.com</td><td>Katalog/pośrednik — abonament roczny, bez prowizji</td><td>TAK — abonament</td><td>Abonament <strong>od kilkuset do kilku tys. zł/rok</strong>, bez prowizji od rezerwacji.</td></tr>
-      <tr><td class="dim">wgory.pl</td><td>Obecność + narzędzia; rezerwacja bezprowizyjna</td><td>TAK (za obecność), 0% prowizji</td><td>Integracja z zewn. systemem rezerwacji, menu/cennik. Cennik pakietu niejawny (kontakt: /dodaj-obiekt).</td></tr>
-      <tr><td class="dim">twojsylwester.eu</td><td>Bezpośredni organizator (własne pobyty)</td><td>N/D — nie przyjmuje ogłoszeń</td><td>Dla klienta: zaliczka 300 zł/os.; pakiety 2-dniowe ~700–2800 zł/os.</td></tr>
+      <tr><td class="dim">Podstawowa obecność / 1 ogłoszenie</td><td class="col-us"><strong>149 zł</strong>/sezon</td><td class="bd">b.d. (dodanie oferty)</td><td>0 zł (model prowizyjny)</td><td>abonament</td><td>pakiet obecności <span class="bd">b.d.</span></td><td class="bd">b.d. (kontakt)</td></tr>
+      <tr><td class="dim">Pakiet „więcej ofert"</td><td class="col-us">Srebrny <strong>199</strong> · Złoty <strong>249</strong></td><td>—</td><td>—</td><td>zależnie od abonamentu</td><td>—</td><td>nielimitowane</td></tr>
+      <tr><td class="dim">Wyróżnienie / TOP w kategorii</td><td class="col-us"><strong>400–1500 zł</strong>/sezon</td><td>Premium/VIP <span class="bd">b.d.</span></td><td>wyższy abonament → niższa prowizja</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td class="dim">TOP na stronie głównej</td><td class="col-us"><strong>2200–3200 zł</strong>/sezon</td><td>VIP <span class="bd">b.d.</span></td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td class="dim">Baner reklamowy</td><td class="col-us"><strong>2500 zł</strong>/⅓ (7500 zł całość)</td><td class="bd">b.d.</td><td class="bd">b.d.</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td class="dim">Prowizja od rezerwacji</td><td class="col-us">0% (brak rezerwacji)</td><td>za bilety <span class="bd">b.d.</span></td><td><strong>~10%</strong></td><td>0%</td><td>0%</td><td class="bd">b.d.</td></tr>
+      <tr><td class="dim">Sprzedaż biletów online</td><td class="col-us">nie</td><td>tak</td><td>(noclegi)</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td class="dim">Abonament roczny</td><td class="col-us">nie (sezonowo)</td><td>—</td><td>opcjonalny (steruje prowizją)</td><td><strong>kilkaset–kilka tys. zł/rok</strong></td><td class="bd">b.d.</td><td>—</td></tr>
+    </tbody>
+  </table></div>
+  <p class="cap"><strong>Wniosek:</strong> rynek dzieli się na dwa modele — <strong>opłata z góry za widoczność</strong> (my, e-turysta, wgory) oraz <strong>prowizja od rezerwacji</strong> (nocowanie). e-sylwester jest najdroższy „od góry" (TOP-y, baner) przy jednoczesnym braku rezerwacji — czyli obiekt płaci wyłącznie za ekspozycję, bez mierzalnego efektu sprzedażowego. To główny punkt do ujednolicenia oferty.</p>
+
+  <h3 class="sub">Propozycja ujednolicenia cennika e-sylwester (kierunek)</h3>
+  <div class="scroll"><table>
+    <thead><tr><th>Poziom</th><th>Co zawiera</th><th>Sugerowana cena</th><th>Cel</th></tr></thead>
+    <tbody>
+      <tr><td class="dim">START</td><td>1 oferta + galeria zdjęć + mapa + formularz zapytania (lead mailem)</td><td>149–199 zł/sezon</td><td>niski próg, ale z realnym leadem</td></tr>
+      <tr><td class="dim">PLUS</td><td>do 5 ofert + wyróżnienie w kategorii + statystyki wyświetleń</td><td>349–499 zł/sezon</td><td>ujednolica Srebrny/Złoty + wartość</td></tr>
+      <tr><td class="dim">MAX / TOP</td><td>PLUS + gwarantowana pozycja TOP (kategoria lub strona gł.)</td><td>od 900 zł (kat.) / od 2200 zł (gł.)</td><td>zachowanie premium bez chaosu widełek</td></tr>
+      <tr><td class="dim">Dodatki</td><td>Baner (2500/⅓), pakiet zdjęć/wideo, wyróżnienie sezonowe</td><td>wg cennika dodatków</td><td>upsell</td></tr>
+    </tbody>
+  </table></div>
+  <p class="cap">Zamiast wielu nakładających się widełek (Podstawowy/Srebrny/Złoty/Platynowy + osobne TOP-y) — 3 czytelne poziomy + dodatki. Każdy poziom dowozi mierzalną wartość (lead/statystyki), nie tylko ekspozycję.</p>
+
+  <h2>Rekomendacje z wagą priorytetu</h2>
+  <p class="cap" style="margin-bottom:12px">Waga = Wpływ×3 − Wysiłek (skala orientacyjna). Wyżej = robić wcześniej. Wpływ i Wysiłek w skali 1–5.</p>
+  <div class="scroll"><table class="pri">
+    <thead><tr><th>#</th><th>Zmiana</th><th class="num">Wpływ</th><th class="num">Wysiłek</th><th>Waga priorytetu</th></tr></thead>
+    <tbody>
+      <tr><td><span class="rank">1</span></td><td class="dim">Formularz zapytania / lead do obiektu <span class="tag">wartość dla obiektu</span></td><td class="num">5</td><td class="num">3</td><td><div class="wbar"><span style="width:100%"></span><b>12</b></div></td></tr>
+      <tr><td><span class="rank">2</span></td><td class="dim">Galeria zdjęć + mapa per oferta <span class="tag">szybki efekt</span></td><td class="num">4</td><td class="num">2</td><td><div class="wbar"><span style="width:83%"></span><b>10</b></div></td></tr>
+      <tr><td><span class="rank">3</span></td><td class="dim">Opinie / oceny gości <span class="tag">konwersja</span></td><td class="num">4</td><td class="num">3</td><td><div class="wbar"><span style="width:75%"></span><b>9</b></div></td></tr>
+      <tr><td><span class="rank">4</span></td><td class="dim">Filtry udogodnień (wyżywienie, SPA, dzieci, parking)</td><td class="num">3</td><td class="num">2</td><td><div class="wbar"><span style="width:58%"></span><b>7</b></div></td></tr>
+      <tr><td><span class="rank">5</span></td><td class="dim">Blog / poradniki sylwestrowe (wzmacnia SEO)</td><td class="num">3</td><td class="num">2</td><td><div class="wbar"><span style="width:58%"></span><b>7</b></div></td></tr>
+      <tr><td><span class="rank">6</span></td><td class="dim">Odświeżenie UX / upgrade z Bootstrap 3 <span class="tag">w toku</span></td><td class="num">3</td><td class="num">3</td><td><div class="wbar"><span style="width:50%"></span><b>6</b></div></td></tr>
+      <tr><td><span class="rank">7</span></td><td class="dim">Newsletter (zbieranie e-maili odwiedzających)</td><td class="num">2</td><td class="num">1</td><td><div class="wbar"><span style="width:42%"></span><b>5</b></div></td></tr>
     </tbody>
   </table></div>
 
-  <h2>Wnioski</h2>
+  <h2>Luki i atuty</h2>
   <div class="cols">
     <div class="card gap"><h3>Czego NIE mamy, a konkurenci mają</h3>
       <ul>
-        <li><strong>Rezerwacja / płatność online</strong> (sylwester.pl, nocowanie, wgory) — u nas tylko link + przelew.</li>
+        <li><strong>Rezerwacja / płatność online</strong> (sylwester.pl, nocowanie, wgory).</li>
         <li><strong>Opinie / oceny gości</strong> (sylwester.pl, nocowanie, twojsylwester).</li>
         <li><strong>Galeria zdjęć per oferta</strong> — praktycznie wszyscy.</li>
         <li><strong>Mapa / geolokalizacja</strong> (nocowanie).</li>
-        <li><strong>Filtry udogodnień</strong> (wyżywienie, SPA, parking, dla dzieci).</li>
+        <li><strong>Filtry udogodnień</strong> (nocowanie, e-turysta, wgory).</li>
         <li><strong>Blog / poradniki</strong> (romantycznyweekend, nocowanie).</li>
-        <li><strong>Aplikacja mobilna + newsletter</strong> (nocowanie).</li>
-        <li><strong>Nowoczesny UX</strong> — u nas starszy Bootstrap 3.</li>
+        <li><strong>Aplikacja + newsletter</strong> (nocowanie).</li>
+        <li><strong>Wartość = leady/rezerwacje</strong>, a nie tylko link.</li>
       </ul>
     </div>
     <div class="card win"><h3>Nasze realne atuty</h3>
       <ul>
-        <li><strong>Najszersza specjalizacja „Sylwester"</strong> — 100+ kategorii, w tym mnóstwo kierunków zagranicznych (szerzej niż sylwester.pl).</li>
-        <li><strong>Silne SEO / pozycje w Google</strong> na frazy sylwestrowe — rdzeń przewagi.</li>
-        <li><strong>Niski próg wejścia</strong> (od 149 zł) i <strong>brak prowizji</strong> od transakcji.</li>
+        <li><strong>Najszersza specjalizacja „Sylwester"</strong> — 100+ kategorii, w tym zagranica (szerzej niż sylwester.pl).</li>
+        <li><strong>Silne SEO / pozycje w Google</strong> — rdzeń przewagi.</li>
+        <li><strong>Niski próg wejścia</strong> (od 149 zł) i <strong>brak prowizji</strong>.</li>
         <li><strong>Weryfikacja ofert</strong> (nr telefonu) — filtr oszustów.</li>
         <li><strong>Lekki, szybki serwis</strong> — łatwy w utrzymaniu.</li>
       </ul>
     </div>
   </div>
-
-  <h2>Rekomendacje — priorytetowo</h2>
-  <ol class="rec">
-    <li><strong>Galeria zdjęć + mapa per oferta</strong> <span class="tag">szybki efekt</span><br>Największy skok wizualny małym kosztem; wyrównuje do konkurencji.</li>
-    <li><strong>Opinie / oceny</strong> <span class="tag">konwersja</span><br>Nawet proste gwiazdki z moderacją — buduje zaufanie, którego brak.</li>
-    <li><strong>Formularz zapytania / rezerwacji</strong> <span class="tag">wartość dla obiektu</span><br>Lead mailem do obiektu (docelowo zaliczka online); zmienia „tylko link" w realny kanał sprzedaży.</li>
-    <li><strong>Filtry udogodnień</strong><br>Wyżywienie, SPA, dla dzieci, parking, kulig — część danych już jest w kategoriach.</li>
-    <li><strong>Odświeżenie UX</strong> <span class="tag">w toku</span><br>Kolorowe klikalne kafle już wdrożone; docelowo upgrade z Bootstrap 3.</li>
-    <li><strong>Blog / poradniki sylwestrowe</strong><br>Wzmacnia SEO, w którym już jesteście mocni.</li>
-    <li><strong>Newsletter</strong><br>Zbieranie e-maili odwiedzających = własny kanał na kolejny sezon.</li>
-  </ol>
 
   <h2>Źródła</h2>
   <p class="src">
