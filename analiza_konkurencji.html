@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pl"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>e-sylwester.pl — analiza konkurencji</title>
+<style>
+  :root{--brand:#00a2f2;--ink:#1d2b39;--muted:#6b7b8c;--line:#e6edf3;--ok:#12a150;--no:#e5484d;--bg:#f6f9fc;--gold:#c79413}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Lato',system-ui,Segoe UI,Roboto,Arial,sans-serif;color:var(--ink);background:var(--bg);line-height:1.5}
+  .wrap{max-width:1100px;margin:0 auto;padding:28px 20px 60px}
+  h1{font-size:28px;margin:0 0 4px}
+  h2{font-size:20px;margin:34px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--brand)}
+  .sub{color:var(--muted);margin:0 0 6px}
+  .note{background:#fff7e6;border:1px solid #ffe0a3;border-radius:10px;padding:12px 14px;font-size:13.5px;color:#6b5a2b;margin:14px 0}
+  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;font-size:13.5px}
+  th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  th{background:#eef6fc;font-size:12.5px;text-transform:uppercase;letter-spacing:.02em;color:#3a5468}
+  td.dim{font-weight:700;white-space:nowrap}
+  .us{background:#eaf5ff}
+  .y{color:var(--ok);font-weight:900}
+  .n{color:var(--no);font-weight:900}
+  .sum td{font-weight:900;background:#f0f5f9;border-top:2px solid var(--brand)}
+  .scroll{overflow-x:auto}
+  .cap{font-size:12px;color:var(--muted);margin-top:6px}
+  ul{margin:8px 0 0 18px;padding:0}
+  li{margin:5px 0}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .card h3{margin:0 0 6px;font-size:15px}
+  .win h3{color:var(--ok)} .gap h3{color:var(--no)}
+  .rec{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .badge{display:inline-block;font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;background:#eef6fc;color:#0084c7;margin-left:6px}
+  @media(max-width:720px){.cols{grid-template-columns:1fr}}
+</style></head>
+<body><div class="wrap">
+
+<h1>Analiza konkurencji: e-sylwester.pl</h1>
+<p class="sub">Porównanie z serwisami wysoko widocznymi w Google na frazy „oferty sylwestrowe / sylwester w górach / nad morzem". Lipiec 2026.</p>
+
+<div class="note"><b>Metodyka i zastrzeżenia:</b> dane zebrane z wyników wyszukiwania (WebSearch) oraz analizy własnego kodu e-sylwester.pl — bezpośrednie pobieranie stron konkurentów było w tym środowisku zablokowane, więc część komórek („mapa", „newsletter") to najlepsze oszacowanie (b.d. = brak potwierdzenia). Scoring 1/0 mierzy <b>szerokość funkcji</b>, nie rentowność — serwisy mają różne modele biznesowe (katalog reklamowy vs OTA z rezerwacją vs bezpośredni organizator).</p>
+
+<h2>Kim są konkurenci</h2>
+<table><tr><th>Serwis</th><th>Typ</th><th>Krótko</th></tr>
+<tr class="us"><td class="dim">e-sylwester.pl</td><td>Płatny katalog ogłoszeń (my)</td><td>Wyspecjalizowany w Sylwestrze, 100+ kategorii (też zagranica), linkuje do stron obiektów, silne SEO.</td></tr>
+<tr><td class="dim">sylwester.pl</td><td>Portal NYE + rezerwacja</td><td>Największy tematyczny portal sylwestrowy; rezerwacja online, sprzedaż biletów, opinie, pozycje Premium/VIP.</td></tr>
+<tr><td class="dim">sylwester.nocowanie.pl</td><td>OTA (nocowanie.pl)</td><td>Gigant noclegowy (100 tys. obiektów), rezerwacja online, 3 mln opinii, aplikacja, prowizja ~10%.</td></tr>
+<tr><td class="dim">romantycznyweekend.eu</td><td>Portal pakietów</td><td>Od 2010; pakiety z wyżywieniem/SPA/balem, redakcja tworzy prezentację, blog, zapytania mail/tel.</td></tr>
+<tr><td class="dim">e-turysta.com</td><td>Katalog/pośrednik</td><td>Portal noclegowy, filtry udogodnień, model abonamentowy bez prowizji, wersja międzynarodowa.</td></tr>
+<tr><td class="dim">wgory.pl</td><td>Portal regionalny (Akcept)</td><td>Góry; rezerwacja bezprowizyjna, panel, integracja z zewn. systemem rezerwacji, menu/cennik obiektu.</td></tr>
+<tr><td class="dim">twojsylwester.eu</td><td>Bezpośredni organizator</td><td>Własne pakiety górskie (Biały Dunajec/Poronin); rezerwacja formularz+zaliczka, opinie. Nie przyjmuje cudzych ogłoszeń.</td></tr>
+</table>
+
+<h2>Tabela porównawcza — scoring 1 / 0</h2>
+<div class="scroll">
+<table>
+<tr><th>Zakres</th><th class="us">e-sylwester</th><th>sylwester.pl</th><th>nocowanie</th><th>romant.W</th><th>e-turysta</th><th>wgory</th><th>twojsylw.</th></tr>
+<tr><td class="dim">1. Zakres ofert / kategorie</td><td class="us y">1</td><td class="y">1</td><td class="y">1</td><td class="y">1</td><td class="y">1</td><td class="n">0</td><td class="n">0</td></tr>
+<tr><td class="dim">2. Wyszukiwarka i filtry (udogodnienia)</td><td class="us n">0</td><td class="y">1</td><td class="y">1</td><td class="y">1</td><td class="y">1</td><td class="y">1</td><td class="n">0</td></tr>
+<tr><td class="dim">3. UX / nowoczesność designu</td><td class="us n">0</td><td class="y">1</td><td class="y">1</td><td class="y">1</td><td class="y">1</td><td class="y">1</td><td class="y">1</td></tr>
+<tr><td class="dim">4. Mobile / responsywność (+aplikacja)</td><td class="us y">1</td><td class="y">1</td><td class="y">1</td><td class="y">1</td><td class="y">1</td><td class="y">1</td><td class="y">1</td></tr>
+<tr><td class="dim">5. Rezerwacja / płatność online</td><td class="us n">0</td><td class="y">1</td><td class="y">1</td><td class="n">0</td><td class="n">0</td><td class="y">1</td><td class="n">0</td></tr>
+<tr><td class="dim">6. Opinie / recenzje gości</td><td class="us n">0</td><td class="y">1</td><td class="y">1</td><td class="n">0</td><td class="n">0</td><td class="n">0</td><td class="y">1</td></tr>
+<tr><td class="dim">7. Zdjęcia / galeria per oferta</td><td class="us n">0</td><td class="y">1</td><td class="y">1</td><td class="y">1</td><td class="y">1</td><td class="y">1</td><td class="y">1</td></tr>
+<tr><td class="dim">8. Mapa / geolokalizacja</td><td class="us n">0</td><td class="n">0</td><td class="y">1</td><td class="n">0</td><td class="n">0</td><td class="n">0</td><td class="n">0</td></tr>
+<tr><td class="dim">9. SEO / widoczność w Google</td><td class="us y">1</td><td class="y">1</td><td class="y">1</td><td class="y">1</td><td class="y">1</td><td class="y">1</td><td class="y">1</td></tr>
+<tr><td class="dim">10. Blog / treści poradnikowe</td><td class="us n">0</td><td class="n">0</td><td class="y">1</td><td class="y">1</td><td class="n">0</td><td class="n">0</td><td class="n">0</td></tr>
+<tr><td class="dim">11. Zaufanie / weryfikacja obiektu</td><td class="us y">1</td><td class="n">0</td><td class="y">1</td><td class="y">1</td><td class="n">0</td><td class="n">0</td><td class="n">0</td></tr>
+<tr><td class="dim">12. Social / newsletter</td><td class="us n">0</td><td class="n">0</td><td class="y">1</td><td class="n">0</td><td class="n">0</td><td class="n">0</td><td class="n">0</td></tr>
+<tr><td class="dim">13. Wartość dla obiektu (leady/rezerwacje, elastyczność)</td><td class="us n">0</td><td class="y">1</td><td class="y">1</td><td class="y">1</td><td class="y">1</td><td class="y">1</td><td class="n">0</td></tr>
+<tr class="sum"><td>SUMA (max 13)</td><td class="us">4</td><td>9</td><td>13</td><td>8</td><td>6</td><td>7</td><td>5</td></tr>
+</table>
+</div>
+<p class="cap">1 = funkcja obecna / dobrze zrobiona · 0 = brak lub słabo. „twojsylwester" to bezpośredni organizator (inny model) — niższy wynik nie znaczy słabszy biznes.</p>
+
+<h2>Tabela porównawcza — model i cennik dla obiektów</h2>
+<div class="scroll">
+<table>
+<tr><th>Serwis</th><th>Model zarabiania</th><th>Pobiera od obiektu?</th><th>Konkretne ceny / warunki</th></tr>
+<tr class="us"><td class="dim">e-sylwester.pl</td><td>Płatny katalog ogłoszeń (link do WWW obiektu), bez rezerwacji online</td><td><b>TAK — z góry</b></td><td>Pakiety netto: Podstawowy 149 · Srebrny 199 · Złoty 249 · Platynowy 1249–1799. TOP w kategorii 400–1500. TOP na stronie gł. 2200–3200. Baner 2500/⅓. Przelew, do końca sezonu.</td></tr>
+<tr><td class="dim">sylwester.pl</td><td>Portal z rezerwacją online + sprzedaż biletów; płatne pozycje Premium/VIP</td><td>TAK (wyróżnienia, bilety)</td><td>Rezerwacja: karta lub 30% zaliczki online, darmowa anulacja do 5 dni. Cennik Premium/VIP — <i>niejawny</i> (kontakt).</td></tr>
+<tr><td class="dim">sylwester.nocowanie.pl</td><td>OTA — prowizja od rezerwacji</td><td>TAK — prowizja</td><td><b>~10%</b> od kwoty rezerwacji (zależnie od abonamentu); wypłata do właściciela tego samego dnia. Weryfikacja dokumentów.</td></tr>
+<tr><td class="dim">romantycznyweekend.eu</td><td>Portal pakietów; prezentację tworzy redakcja; zapytania mail/tel/link</td><td>TAK (warunki niejawne)</td><td>Nielimitowana liczba pakietów/rok. Cennik/prowizja — <i>niejawne</i> (kontakt: /dodajobiekt).</td></tr>
+<tr><td class="dim">e-turysta.com</td><td>Katalog/pośrednik — abonament roczny, bez prowizji</td><td>TAK — abonament</td><td>Abonament <b>od kilkuset do kilku tys. zł/rok</b>, bez prowizji od rezerwacji.</td></tr>
+<tr><td class="dim">wgory.pl</td><td>Portal regionalny — obecność + narzędzia, rezerwacja bezprowizyjna</td><td>TAK (za obecność), 0% prowizji</td><td>Model bezprowizyjny; integracja z zewn. systemem rezerwacji, menu/cennik. Cennik pakietu — <i>niejawny</i> (kontakt: /dodaj-obiekt).</td></tr>
+<tr><td class="dim">twojsylwester.eu</td><td>Bezpośredni organizator (sprzedaje własne pobyty)</td><td>N/D — nie przyjmuje ogłoszeń</td><td>Dla klienta: zaliczka 300 zł/os.; pakiety 2-dniowe ~700–2800 zł/os.</td></tr>
+</table>
+</div>
+
+<h2>Wnioski</h2>
+<div class="cols">
+  <div class="card gap"><h3>Czego NIE mamy, a konkurenci mają</h3>
+  <ul>
+    <li><b>Rezerwacja / płatność online</b> (sylwester.pl, nocowanie, wgory) — u nas tylko link + przelew za pakiet.</li>
+    <li><b>Opinie / oceny gości</b> (sylwester.pl, nocowanie, twojsylwester).</li>
+    <li><b>Galeria zdjęć per oferta</b> — praktycznie wszyscy.</li>
+    <li><b>Mapa / geolokalizacja</b> (nocowanie).</li>
+    <li><b>Filtry udogodnień</b> (wyżywienie, SPA, parking, dla dzieci) — nocowanie, e-turysta, wgory.</li>
+    <li><b>Blog / poradniki</b> (romantycznyweekend, nocowanie).</li>
+    <li><b>Aplikacja mobilna + newsletter</b> (nocowanie).</li>
+    <li><b>Nowoczesny UX</b> — u nas Bootstrap 3 (starszy).</li>
+    <li><b>Wartość dla obiektu = leady/rezerwacje</b>, a nie tylko link.</li>
+  </ul></div>
+  <div class="card win"><h3>Nasze realne atuty</h3>
+  <ul>
+    <li><b>Najszersza specjalizacja „Sylwester"</b> — 100+ kategorii, w tym mnóstwo kierunków zagranicznych (szerzej niż nawet sylwester.pl).</li>
+    <li><b>Silne SEO / pozycje w Google</b> na frazy sylwestrowe — rdzeń przewagi.</li>
+    <li><b>Niski próg wejścia</b> (od 149 zł) i <b>brak prowizji</b> od transakcji — przewidywalny koszt dla obiektu.</li>
+    <li><b>Weryfikacja ofert</b> (nr telefonu) — filtr oszustów.</li>
+    <li><b>Lekki, szybki serwis</b> — łatwy w utrzymaniu.</li>
+  </ul></div>
+</div>
+
+<h2>Rekomendacje (priorytetowo)</h2>
+<div class="rec"><ul>
+  <li><b>1. Galeria zdjęć + mapa per oferta</b> <span class="badge">szybki efekt</span> — największy skok wizualny małym kosztem, wyrównuje do konkurencji.</li>
+  <li><b>2. Opinie / oceny</b> <span class="badge">konwersja</span> — nawet proste gwiazdki z moderacją; buduje zaufanie, którego brak.</li>
+  <li><b>3. Formularz zapytania / rezerwacji</b> <span class="badge">wartość dla obiektu</span> — lead do obiektu mailem (docelowo zaliczka online); zmienia ofertę „tylko link" w realny kanał sprzedaży.</li>
+  <li><b>4. Filtry udogodnień</b> — wyżywienie, SPA, dla dzieci, parking, kulig; część danych już jest w kategoriach.</li>
+  <li><b>5. Odświeżenie UX</b> <span class="badge">w toku</span> — kolorowe klikalne kafle już wdrożone; docelowo upgrade z Bootstrap 3.</li>
+  <li><b>6. Blog / poradniki sylwestrowe</b> — wzmacnia SEO, w którym już jesteście mocni.</li>
+  <li><b>7. Newsletter</b> — zbieranie e-maili odwiedzających = własny kanał na kolejny sezon.</li>
+</ul></div>
+
+</div></body></html>
