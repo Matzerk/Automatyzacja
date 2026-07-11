@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Go Grecja — rozpiska poradników</title>
+<style>
+  :root{
+    --sea:#127bbf; --sea-d:#0c5c91; --sea-weak:#e8f3fb;
+    --sky:#eaf4fb; --paper:#ffffff; --bg:#f2f7fb;
+    --ink:#15303f; --muted:#5d7486; --line:#dbe7f0;
+    --done:#16915a; --done-bg:#e7f6ee; --p1:#c0392b; --p2:#c77c0a; --p3:#127bbf; --p4:#7a8a97;
+    --shadow:0 1px 2px rgba(18,60,90,.05),0 10px 26px -16px rgba(18,60,90,.35);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;line-height:1.5}
+  .wrap{max-width:1000px;margin:0 auto;padding:34px 20px 70px}
+  header.top{background:linear-gradient(135deg,var(--sea),#3aa0dc);color:#fff;border-radius:16px;padding:26px 26px 22px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  header.top::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;height:180px;background:rgba(255,255,255,.12);border-radius:50%}
+  .kicker{font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;opacity:.9;margin:0 0 6px}
+  header.top h1{margin:0 0 6px;font-size:clamp(24px,4vw,34px);letter-spacing:-.02em}
+  header.top p{margin:0;max-width:60ch;color:#eaf6ff;font-size:15px}
+  .counter{margin-top:16px;display:inline-flex;align-items:center;gap:10px;background:rgba(255,255,255,.16);
+    border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:7px 16px;font-weight:700;font-size:14px}
+  .counter b{font-variant-numeric:tabular-nums}
+  .note{background:#fff7e6;border:1px solid #ffe0a3;border-left:3px solid #d9a531;border-radius:10px;
+    padding:12px 15px;font-size:13.5px;color:#6b5a2b;margin:18px 0 6px}
+  .legend{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0 4px;font-size:12.5px;color:var(--muted)}
+  .pill{display:inline-flex;align-items:center;gap:6px;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-weight:700}
+  .dot{width:9px;height:9px;border-radius:50%}
+  .d1{background:var(--p1)}.d2{background:var(--p2)}.d3{background:var(--p3)}.d4{background:var(--p4)}
+  h2{font-size:19px;margin:34px 0 4px;display:flex;align-items:center;gap:10px}
+  h2 .hnum{display:inline-grid;place-items:center;min-width:28px;height:28px;padding:0 7px;border-radius:8px;background:var(--sea);color:#fff;font-size:14px;font-weight:800}
+  .pillar{color:var(--muted);font-size:13.5px;font-style:italic;margin:2px 0 10px 38px}
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle}
+  th{background:var(--sky);font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);font-weight:800}
+  tbody tr:last-child td{border-bottom:none}
+  tr:has(input:checked){background:var(--done-bg)}
+  tr:has(input:checked) .temat{color:var(--done);text-decoration:line-through;text-decoration-color:rgba(22,145,90,.5)}
+  .colchk{width:44px;text-align:center}
+  .coltyp{width:96px}.colpri{width:64px;text-align:center}
+  input[type=checkbox]{width:19px;height:19px;accent-color:var(--done);cursor:pointer}
+  .temat{font-weight:600}
+  .typ{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2px 8px;border-radius:6px;background:var(--sea-weak);color:var(--sea-d)}
+  .typ.hub{background:#e6eefc;color:#3a56b0}
+  .pri{font-weight:800;font-variant-numeric:tabular-nums;font-size:13px}
+  .pri.P1{color:var(--p1)}.pri.P2{color:var(--p2)}.pri.P3{color:var(--p3)}.pri.P4{color:var(--p4)}
+  .status{font-size:11px;font-weight:800;color:var(--muted)}
+  tr:has(input:checked) .status{color:var(--done)}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0 0}
+  .btn{border:1px solid var(--line);background:var(--paper);color:var(--sea-d);font-weight:700;font-size:13px;
+    padding:8px 14px;border-radius:9px;cursor:pointer}
+  .btn:hover{border-color:var(--sea);color:var(--sea)}
+  .foot{margin-top:26px;font-size:13px;color:var(--muted)}
+  @media print{.toolbar,.btn{display:none}body{background:#fff}.card,header.top{box-shadow:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <p class="kicker">Go Grecja · plan poradników</p>
+    <h1>Rozpiska poradników — co zakryte, co do zrobienia</h1>
+    <p>Propozycje poradników pogrupowane w huby (filary) i klastry. Odhacz to, co już istnieje w panelu — reszta to backlog „jeszcze zakrytych" tematów.</p>
+    <div class="counter">✅ Oznaczone jako gotowe: <b id="cDone">0</b> / <b id="cAll">0</b></div>
+  </header>
+
+  <div class="note"><strong>Uwaga:</strong> nie mam dostępu do panelu admina Go Grecja, więc lista poniżej to <strong>propozycja pełnej struktury</strong> — domyślnie wszystko jako „do napisania". Odhacz pozycje, które już masz w systemie (aktywne lub nieaktywne); to, co zostanie niezaznaczone, jest „zakryte" i czeka na publikację. Zaznaczenia działają na tej stronie (do wydruku/PDF) — nie zapisują się po zamknięciu.</div>
+
+  <div class="legend">
+    <span class="pill"><span class="dot d1"></span>P1 — priorytet (money pages)</span>
+    <span class="pill"><span class="dot d2"></span>P2 — ważne</span>
+    <span class="pill"><span class="dot d3"></span>P3 — uzupełniające</span>
+    <span class="pill"><span class="dot d4"></span>P4 — niszowe</span>
+  </div>
+
+  <div class="toolbar">
+    <button class="btn" onclick="setAll(true)">Zaznacz wszystko</button>
+    <button class="btn" onclick="setAll(false)">Odznacz wszystko</button>
+    <button class="btn" onclick="window.print()">Drukuj / zapisz PDF</button>
+  </div>
+
+  <!-- HUB 1 -->
+  <h2><span class="hnum">1</span> Wyspy greckie</h2>
+  <p class="pillar">Filar: „Wyspy greckie — którą wybrać na wakacje 2026"</p>
+  <div class="card"><table>
+    <thead><tr><th class="colchk">✓</th><th>Temat / poradnik</th><th class="coltyp">Typ</th><th class="colpri">Prio</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Wyspy greckie — przewodnik i porównanie (filar)</td><td><span class="typ hub">HUB</span></td><td class="colpri"><span class="pri P1">P1</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Kreta — przewodnik (plaże, hotele, atrakcje, na ile dni)</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P1">P1</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Rodos — przewodnik</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P1">P1</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Zakynthos (Zakintos) — przewodnik</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P1">P1</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Santorini — przewodnik</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P1">P1</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Korfu — przewodnik</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P1">P1</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Kos — przewodnik</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P1">P1</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Lefkada — przewodnik</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P2">P2</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Thassos — przewodnik</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P2">P2</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Kefalonia — przewodnik</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P2">P2</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Naxos — przewodnik</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P3">P3</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Paros — przewodnik</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P3">P3</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Mykonos — przewodnik</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P3">P3</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Karpathos · Skiathos · Samos · Chios · Lesbos</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P4">P4</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Kreta vs Rodos vs Kos — którą wyspę wybrać (porównanie)</td><td><span class="typ">poradnik</span></td><td class="colpri"><span class="pri P1">P1</span></td><td><span class="status">do napisania</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <!-- HUB 2 -->
+  <h2><span class="hnum">2</span> Grecja kontynentalna</h2>
+  <p class="pillar">Filar: „Grecja kontynentalna — gdzie na wakacje poza wyspami"</p>
+  <div class="card"><table>
+    <thead><tr><th class="colchk">✓</th><th>Temat / poradnik</th><th class="coltyp">Typ</th><th class="colpri">Prio</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Grecja kontynentalna — przewodnik (filar)</td><td><span class="typ hub">HUB</span></td><td class="colpri"><span class="pri P2">P2</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Chalkidiki (Kassandra, Sithonia, Athos)</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P1">P1</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Riwiera Olimpijska</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P2">P2</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Ateny i okolice</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P2">P2</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Saloniki (Thessaloniki)</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P3">P3</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Peloponez · Parga i Epir · Meteory (baza)</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P3">P3</span></td><td><span class="status">do napisania</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <!-- HUB 3 -->
+  <h2><span class="hnum">3</span> Hotele i noclegi</h2>
+  <p class="pillar">Filar: „Hotele w Grecji — jak wybrać najlepszy"</p>
+  <div class="card"><table>
+    <thead><tr><th class="colchk">✓</th><th>Temat / poradnik</th><th class="coltyp">Typ</th><th class="colpri">Prio</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Hotele w Grecji — jak wybrać (filar)</td><td><span class="typ hub">HUB</span></td><td class="colpri"><span class="pri P1">P1</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Hotele all inclusive w Grecji</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P1">P1</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Hotele przy plaży (first line)</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P1">P1</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Hotele dla rodzin z dziećmi (aquapark, animacje)</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P1">P1</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Hotele adults only / dla par</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P2">P2</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Resorty 5★ / luksusowe</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P3">P3</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Tanie hotele i noclegi</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P2">P2</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Apartamenty i studia · Wille z basenem</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P3">P3</span></td><td><span class="status">do napisania</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <!-- HUB 4 -->
+  <h2><span class="hnum">4</span> Typ wyjazdu / „dla kogo"</h2>
+  <p class="pillar">Filar: „Jaka Grecja dla Ciebie — pomysły na wyjazd"</p>
+  <div class="card"><table>
+    <thead><tr><th class="colchk">✓</th><th>Temat / poradnik</th><th class="coltyp">Typ</th><th class="colpri">Prio</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Jaka Grecja dla Ciebie (filar)</td><td><span class="typ hub">HUB</span></td><td class="colpri"><span class="pri P2">P2</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Grecja z dziećmi / rodzinnie</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P1">P1</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Grecja all inclusive — dla kogo, czy warto</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P1">P1</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Grecja dla par / podróż poślubna</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P2">P2</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Grecja budżetowo / tanio</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P2">P2</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Grecja dla singli / imprezowo · luksusowo · seniorzy · grupy</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P3">P3</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Grecja last minute</td><td><span class="typ">poradnik</span></td><td class="colpri"><span class="pri P1">P1</span></td><td><span class="status">do napisania</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <!-- HUB 5 -->
+  <h2><span class="hnum">5</span> Plaże</h2>
+  <p class="pillar">Filar: „Najpiękniejsze plaże Grecji"</p>
+  <div class="card"><table>
+    <thead><tr><th class="colchk">✓</th><th>Temat / poradnik</th><th class="coltyp">Typ</th><th class="colpri">Prio</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Najpiękniejsze plaże Grecji (filar)</td><td><span class="typ hub">HUB</span></td><td class="colpri"><span class="pri P2">P2</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Najpiękniejsze plaże Krety</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P2">P2</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Plaże Rodos</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P2">P2</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Navagio (Wrak Statku) — Zakynthos</td><td><span class="typ">poradnik</span></td><td class="colpri"><span class="pri P2">P2</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Plaże dla rodzin (płaskie wejście) · Błękitna Flaga</td><td><span class="typ">poradnik</span></td><td class="colpri"><span class="pri P3">P3</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Dzikie / kameralne plaże · różowy i czarny piasek</td><td><span class="typ">poradnik</span></td><td class="colpri"><span class="pri P4">P4</span></td><td><span class="status">do napisania</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <!-- HUB 6 -->
+  <h2><span class="hnum">6</span> Zwiedzanie i atrakcje</h2>
+  <p class="pillar">Filar: „Co zobaczyć w Grecji — atrakcje i zabytki"</p>
+  <div class="card"><table>
+    <thead><tr><th class="colchk">✓</th><th>Temat / poradnik</th><th class="coltyp">Typ</th><th class="colpri">Prio</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Co zobaczyć w Grecji (filar)</td><td><span class="typ hub">HUB</span></td><td class="colpri"><span class="pri P3">P3</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Akropol i Ateny w 1 dzień</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P3">P3</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Meteory — klasztory na skałach</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P3">P3</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Knossos (Kreta) · Delfy · Rodos starówka</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P3">P3</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Oia i zachody słońca na Santorini · Wąwóz Samaria · Olimp</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P4">P4</span></td><td><span class="status">do napisania</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <!-- HUB 7 -->
+  <h2><span class="hnum">7</span> Poradniki praktyczne (evergreen)</h2>
+  <p class="pillar">Filar: „Grecja — przewodnik praktyczny przed wyjazdem" · najmocniejsze pod SEO</p>
+  <div class="card"><table>
+    <thead><tr><th class="colchk">✓</th><th>Temat / poradnik</th><th class="coltyp">Typ</th><th class="colpri">Prio</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Kiedy jechać do Grecji — pogoda i temperatura wody (miesiąc po miesiącu)</td><td><span class="typ">poradnik</span></td><td class="colpri"><span class="pri P1">P1</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Ile kosztują wakacje w Grecji 2026 — budżet i ceny</td><td><span class="typ">poradnik</span></td><td class="colpri"><span class="pri P1">P1</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Dojazd do Grecji — samolot, prom, samochodem</td><td><span class="typ">poradnik</span></td><td class="colpri"><span class="pri P1">P1</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Wypożyczenie samochodu w Grecji — jak, za ile, na co uważać</td><td><span class="typ">poradnik</span></td><td class="colpri"><span class="pri P2">P2</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Waluta, dokumenty, ubezpieczenie — przed wyjazdem</td><td><span class="typ">poradnik</span></td><td class="colpri"><span class="pri P2">P2</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Grecka kuchnia — co koniecznie zjeść (i ile kosztuje)</td><td><span class="typ">poradnik</span></td><td class="colpri"><span class="pri P2">P2</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Co zabrać do Grecji — lista rzeczy na wakacje</td><td><span class="typ">poradnik</span></td><td class="colpri"><span class="pri P2">P2</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Promy między wyspami — bilety, rozkłady · Rejsy po wyspach</td><td><span class="typ">poradnik</span></td><td class="colpri"><span class="pri P3">P3</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Internet / eSIM · napiwki i zwyczaje · bezpieczeństwo · z niemowlakiem</td><td><span class="typ">poradnik</span></td><td class="colpri"><span class="pri P3">P3</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Grecja poza sezonem (maj, wrzesień, październik) — czy warto</td><td><span class="typ">poradnik</span></td><td class="colpri"><span class="pri P2">P2</span></td><td><span class="status">do napisania</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <!-- HUB 8-10 skrót -->
+  <h2><span class="hnum">8</span> Kuchnia, kultura, aktywnie, sezon</h2>
+  <p class="pillar">Filary uzupełniające: kuchnia i kultura · aktywna Grecja · terminy/sezon</p>
+  <div class="card"><table>
+    <thead><tr><th class="colchk">✓</th><th>Temat / poradnik</th><th class="coltyp">Typ</th><th class="colpri">Prio</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Top 15 greckich potraw · greckie wino/ouzo · słodycze</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P3">P3</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Festiwale, święta i tradycje w Grecji</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P4">P4</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Aktywnie: nurkowanie, trekking, sporty wodne, winnice</td><td><span class="typ">klaster</span></td><td class="colpri"><span class="pri P4">P4</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Grecja majówka · lipiec/sierpień · wrzesień</td><td><span class="typ">poradnik</span></td><td class="colpri"><span class="pri P2">P2</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Które greckie wyspy są najtańsze</td><td><span class="typ">poradnik</span></td><td class="colpri"><span class="pri P2">P2</span></td><td><span class="status">do napisania</span></td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="temat">Porównania: wyspa vs kontynent · Grecja vs Turcja · Grecja vs Chorwacja</td><td><span class="typ">poradnik</span></td><td class="colpri"><span class="pri P3">P3</span></td><td><span class="status">do napisania</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <p class="foot"><strong>Jak dokończyć rozpiskę:</strong> odhacz w tej liście tematy, które już istnieją w panelu Go Grecja (aktywne lub nieaktywne). To, co zostanie niezaznaczone = backlog „jeszcze zakrytych" poradników. Jeśli wkleisz mi tytuły artykułów z admina, zrobię zestawienie „mamy / brakuje" 1:1 i naniosę realne statusy.</p>
+
+</div>
+
+<script>
+  function refresh(){
+    var all=document.querySelectorAll('input[type=checkbox]');
+    var done=document.querySelectorAll('input[type=checkbox]:checked');
+    document.getElementById('cAll').textContent=all.length;
+    document.getElementById('cDone').textContent=done.length;
+  }
+  function setAll(v){document.querySelectorAll('input[type=checkbox]').forEach(function(c){c.checked=v});refresh();}
+  document.addEventListener('change',function(e){if(e.target.matches('input[type=checkbox]'))refresh();});
+  refresh();
+</script>
+</body>
+</html>
