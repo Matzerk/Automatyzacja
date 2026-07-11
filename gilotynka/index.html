@@ -107,6 +107,13 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tx)
 .hbox{width:60px!important;padding:4px 6px!important;font-size:11px!important;text-align:center}
 .hbox2{width:64px!important;padding:4px 6px!important;font-size:11px!important}
 .col-empty{font-size:10px;color:var(--mu);text-align:center;padding:8px}
+/* Przełącznik osób (admin: działaj jako) */
+.switcher-row{display:flex;gap:6px;flex-wrap:wrap}
+.chip{background:var(--bg2);border:1px solid var(--bd2);color:var(--mu);padding:6px 13px;border-radius:20px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:5px;transition:all .12s}
+.chip:hover{border-color:var(--ac);color:var(--tx)}
+.chip.on{background:var(--ac);border-color:var(--ac);color:#000}
+.imp-banner{background:rgba(212,168,83,.12);border:1px solid rgba(212,168,83,.5);border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.imp-banner button{margin-left:auto}
 .wlog{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
 .wlog .fi,.wlog .fsel{padding:5px 7px;font-size:11px}
 .wlog .fsel{flex:1;min-width:120px;width:auto}
@@ -188,6 +195,7 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tx)
       <div style="font-size:10px;color:var(--mu)" id="board-sub">—</div>
     </div>
   </div>
+  <div id="switcher" class="h" style="margin-bottom:14px"></div>
   <div id="board"></div>
   <div id="calwrap" style="margin-top:18px"></div>
 </div>

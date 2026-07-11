@@ -31,8 +31,9 @@ async function api(action, data, method) {
 // ─── Stan aplikacji ────────────────────────────────────────────
 const STATE = {
   tasks: [], logs: [], profiles: {}, me: null, role: 'worker', cur: 'a',
+  viewAs: 'admin',                    // (admin) 'admin' = przegląd wszystkich, albo id pracownika = działaj jako on
   expanded: {},                       // ownerId -> czy lista rozwinięta (>10)
-  cal: { y: 0, m: 0, mode: 'off', user: 0, days: {}, offYear: 0 },
+  cal: { y: 0, m: 0, mode: 'off', user: 0, days: {}, offYear: 0, locked: false },
   rep: { mode: 'month', anchor: '', from: '', to: '', owner: 'all' },
 };
 let _poll = null;
@@ -109,25 +110,56 @@ function renderCur(){
 }
 
 // ═══ ZAKŁADKA 1: ZADANIA ═══
+function renderSwitcher(){
+  const el=$('switcher'); if(!el) return;
+  if(!isSup()){ el.classList.add('h'); return; }
+  el.classList.remove('h');
+  const chips=[`<button class="chip ${STATE.viewAs==='admin'?'on':''}" onclick="setViewAs('admin')">🛡️ ${esc(STATE.me.name||nameOf(STATE.me.id))} <span style="opacity:.6">· admin</span></button>`];
+  workers().forEach(w=>chips.push(`<button class="chip ${(+STATE.viewAs===w.id)?'on':''}" onclick="setViewAs('${w.id}')">🧒 ${esc(w.name)}</button>`));
+  el.innerHTML=`<div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mu);margin-bottom:6px">Wybierz osobę</div><div class="switcher-row">${chips.join('')}</div>`;
+}
+function setViewAs(v){
+  STATE.viewAs = (v==='admin') ? 'admin' : v;
+  if(v!=='admin'){ STATE.cal.user=+v; }
+  renderCur();
+}
 function renderBoard(){
   const board=$('board'); if(!board) return;
-  $('board-title').textContent = isSup() ? 'Zadania pracowników' : 'Moje zadania';
-  $('board-sub').textContent   = isSup()
-    ? 'Każdy pracownik ma kolumnę — przypisuj zadania, wpisuj/sprawdzaj godziny'
-    : 'Wpisuj godziny, pobieraj i zamykaj zadania (priorytet 1 = najważniejsze)';
-  if(isSup()){
-    const ws=workers();
-    if(!ws.length){
-      board.className='';
-      board.innerHTML='<div class="empty"><div class="ei">👥</div>Brak pracowników.<br><span style="font-size:11px">Dodaj konta w <strong style="color:var(--ac)">⚙ Konta</strong>.</span></div>';
-      return;
-    }
-    board.className='board';
-    board.innerHTML=ws.map(w=>panelHtml(w.id,false)).join('');
-  } else {
-    board.className='';
-    board.innerHTML=panelHtml(STATE.me.id,true);
+  renderSwitcher();
+
+  // WYKONAWCA: tylko swój panel
+  if(!isSup()){
+    $('board-title').textContent='Moje zadania';
+    $('board-sub').textContent='Wpisuj godziny, pobieraj i zamykaj zadania (priorytet 1 = najważniejsze)';
+    STATE.cal.user=STATE.me.id; STATE.cal.locked=true;
+    board.className=''; board.innerHTML=panelHtml(STATE.me.id,true);
+    return;
   }
+
+  // ADMIN — działaj jako pracownik
+  const imp = STATE.viewAs!=='admin' ? +STATE.viewAs : null;
+  if(imp && STATE.profiles[imp]){
+    $('board-title').textContent='Podgląd: '+nameOf(imp);
+    $('board-sub').textContent='Działasz w imieniu tego pracownika — zmiany zapisują się u niego';
+    STATE.cal.user=imp; STATE.cal.locked=true;
+    board.className='';
+    board.innerHTML=`<div class="imp-banner">👁 Podgląd jako <strong>${esc(nameOf(imp))}</strong> — zmiany zapisują się na jego koncie.<button class="btn sm" onclick="setViewAs('admin')">← wróć do widoku admina</button></div>`+panelHtml(imp,true);
+    return;
+  }
+
+  // ADMIN — przegląd wszystkich
+  $('board-title').textContent='Wszyscy pracownicy';
+  $('board-sub').textContent='Kliknij osobę powyżej, aby wejść w jej panel i działać za nią';
+  STATE.cal.locked=false;
+  if(!STATE.cal.user || roleOf(STATE.cal.user)!=='worker') STATE.cal.user=(workers()[0]?.id||STATE.me.id);
+  const ws=workers();
+  if(!ws.length){
+    board.className='';
+    board.innerHTML='<div class="empty"><div class="ei">👥</div>Brak pracowników.<br><span style="font-size:11px">Dodaj konta w <strong style="color:var(--ac)">⚙ Konta</strong>.</span></div>';
+    return;
+  }
+  board.className='board';
+  board.innerHTML=ws.map(w=>panelHtml(w.id,false)).join('');
 }
 
 function panelHtml(ownerId, solo){
@@ -431,7 +463,9 @@ function renderCalendar(){
       ${info.isOff?'<span class="cal-off-tag">wolne</span>':''}
     </div>`;
   }
-  const owSel = isSup() ? `<select class="fsel" onchange="calUser(this.value)" style="width:auto;font-size:11px;padding:4px 8px">${workers().map(u=>`<option value="${u.id}"${STATE.cal.user===u.id?' selected':''}>${esc(u.name)}</option>`).join('')}</select>` : '';
+  const owSel = (isSup() && !STATE.cal.locked)
+    ? `<select class="fsel" onchange="calUser(this.value)" style="width:auto;font-size:11px;padding:4px 8px">${workers().map(u=>`<option value="${u.id}"${STATE.cal.user===u.id?' selected':''}>${esc(u.name)}</option>`).join('')}</select>`
+    : `<span style="font-size:11px;color:var(--mu)">${esc(nameOf(STATE.cal.user))}</span>`;
   wrap.innerHTML=`
   <div class="panel" style="max-width:560px">
     <div class="panel-head" style="flex-wrap:wrap;gap:8px">
