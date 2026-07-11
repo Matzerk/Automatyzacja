@@ -23,3 +23,6 @@ state/
 .vscode/
 .idea/
 .DS_Store
+
+# Handover z danymi dostepowymi - NIE commitowac
+przekazanie_go_grecja.md
