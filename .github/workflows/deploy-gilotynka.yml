@@ -1,0 +1,36 @@
+name: Deploy Gilotynka (FTP → kei.pl)
+
+# Automatyczne wgranie plików Gilotynki na hosting kei przy każdym pushu,
+# który zmienia coś w katalogu gilotynka/. Można też odpalić ręcznie
+# (zakładka Actions → Deploy Gilotynka → Run workflow).
+
+on:
+  push:
+    branches: ["claude/nifty-bell-f6pdlb", "main"]
+    paths: ["gilotynka/**"]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: FTP Deploy
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: 94.152.130.16
+          username: gilotynka
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./gilotynka/
+          server-dir: /public_html/gilotynka/
+          # NIE ruszamy sekretów i instalatora na serwerze:
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/config.php
+            **/install.php
+            **/*.md
