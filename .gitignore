@@ -26,3 +26,6 @@ state/
 
 # Handover z danymi dostepowymi - NIE commitowac
 przekazanie_go_grecja.md
+
+# Dane wewnetrzne projektu goGrecja - NIE commitowac
+goGrecja_dane_z_maila.txt
