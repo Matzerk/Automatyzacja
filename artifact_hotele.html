@@ -87,13 +87,31 @@
   <div class="card"><ol class="steps">
     <li><label class="chk"><input type="checkbox"><span><span class="step-b">Nazwa hotelu</span> + <span class="step-b">lokalizacja</span>: wyspa/region → miejscowość.</span></label></li>
     <li><label class="chk"><input type="checkbox"><span><span class="step-b">Kategoria</span>: liczba gwiazdek + typ (all inclusive / dla rodzin / przy plaży / adults only / z aquaparkiem).</span></label></li>
-    <li><label class="chk"><input type="checkbox"><span><span class="step-b">Opis</span>: wygeneruj przez GPT (prompt hotelowy) — użyteczny, konkretny, także wady; nie „huraoptymistyczny".</span></label></li>
+    <li><label class="chk"><input type="checkbox"><span><span class="step-b">Opis</span>: <strong>buduj wg sekcji 4 — na bazie opinii z 4 serwisów</strong> (pozytywnych i negatywnych), przez GPT; konkretny, także wady.</span></label></li>
     <li><label class="chk"><input type="checkbox"><span><span class="step-b">Udogodnienia</span>: basen, wyżywienie, plaża (odległość), wifi, parking, animacje, SPA.</span></label></li>
     <li><label class="chk"><input type="checkbox"><span><span class="step-b">Mapa / współrzędne</span> + <span class="step-b">cena od</span> / sezon (jeśli podajecie).</span></label></li>
   </ol></div>
 
-  <!-- 4 -->
-  <h2><span class="n">4</span> Linki rezerwacyjne — jak je wyszukać</h2>
+  <!-- 4 OPINIE -->
+  <h2><span class="n">4</span> Opinie — sprawdź WSZYSTKIE 4 serwisy (KLUCZOWE)</h2>
+  <div class="note" style="margin-top:0"><strong>To jest klucz jakości.</strong> Przed napisaniem opisu sprawdź <strong>liczbę wszystkich opinii</strong> hotelu w czterech serwisach, a opis <strong>buduj na dłuższych, konkretnych opiniach — zarówno pozytywnych, jak i negatywnych</strong>.</div>
+  <div class="scroll"><table>
+    <thead><tr><th class="colchk">✓</th><th>Serwis</th><th>Co sprawdzić</th><th>Liczba opinii</th></tr></thead>
+    <tbody>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="step-b">Google</td><td>ocena + liczba opinii (profil hotelu / Mapy Google)</td><td class="fld">[wpisz]</td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="step-b">Wakacje.pl</td><td>opinie klientów przy ofercie hotelu</td><td class="fld">[wpisz]</td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="step-b">TripAdvisor</td><td>ocena + liczba recenzji</td><td class="fld">[wpisz]</td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="step-b">4-ty serwis <span class="todo">DO POTWIERDZENIA — np. Booking.com</span></td><td>ocena + liczba recenzji</td><td class="fld">[wpisz]</td></tr>
+    </tbody>
+  </table></div>
+  <div class="card" style="margin-top:8px"><ol class="steps">
+    <li><label class="chk"><input type="checkbox"><span>Zanotuj <strong>łączną liczbę opinii</strong> ze wszystkich 4 serwisów — to sygnał popularności i wiarygodności hotelu.</span></label></li>
+    <li><label class="chk"><input type="checkbox"><span>Wybierz <strong>dłuższe, treściwe opinie</strong>: kilka <strong>pozytywnych</strong> i kilka <strong>negatywnych</strong> z tych 4 serwisów.</span></label></li>
+    <li><label class="chk"><input type="checkbox"><span><strong>Zbuduj opis hotelu na ich podstawie</strong> (przez GPT): konkretny i uczciwy — podawaj też wady, nie „huraoptymistyczny".</span></label></li>
+  </ol></div>
+
+  <!-- 5 -->
+  <h2><span class="n">5</span> Linki rezerwacyjne — jak je wyszukać</h2>
   <div class="card"><ol class="steps">
     <li><label class="chk"><input type="checkbox"><span>Zaloguj się do <strong>panelu partnera/afiliacji</strong> <span class="todo">DO POTWIERDZENIA który</span>.</span></label></li>
     <li><label class="chk"><input type="checkbox"><span>Wyszukaj hotel <strong>po nazwie + miejscowości</strong> (upewnij się, że to właściwy obiekt — te same nazwy bywają w różnych miejscach).</span></label></li>
@@ -103,7 +121,7 @@
   </ol></div>
 
   <!-- 5 -->
-  <h2><span class="n">5</span> Zdjęcia</h2>
+  <h2><span class="n">6</span> Zdjęcia</h2>
   <div class="card"><ol class="steps">
     <li><label class="chk"><input type="checkbox"><span>Pobierz zdjęcia z <strong>dozwolonego źródła</strong> (materiały partnera/hotelu) <span class="todo">DO POTWIERDZENIA źródło i prawa</span>.</span></label></li>
     <li><label class="chk"><input type="checkbox"><span>Format <strong>.jpg</strong>, skompresuj na <strong>tinypng.com</strong>.</span></label></li>
@@ -111,7 +129,7 @@
   </ol></div>
 
   <!-- 6 -->
-  <h2><span class="n">6</span> Wprowadzenie do panelu</h2>
+  <h2><span class="n">7</span> Wprowadzenie do panelu</h2>
   <div class="card"><ol class="steps">
     <li><label class="chk"><input type="checkbox"><span>Dodaj nowy hotel/ofertę → wypełnij pola: nazwa, opis, kategoria, cena, <strong>link rezerwacyjny</strong>, zdjęcia.</span></label></li>
     <li><label class="chk"><input type="checkbox"><span><strong>Przypisz do kategorii/klastrów</strong> (~5): wyspa/region + typ (all inclusive, dla rodzin, przy plaży…).</span></label></li>
@@ -119,14 +137,14 @@
   </ol></div>
 
   <!-- 7 -->
-  <h2><span class="n">7</span> SEO</h2>
+  <h2><span class="n">8</span> SEO</h2>
   <div class="card"><ol class="steps">
     <li><label class="chk"><input type="checkbox"><span><strong>Tytuł</strong> + <strong>H1</strong> + <strong>meta opis</strong> (nazwa hotelu + miejscowość + rok).</span></label></li>
     <li><label class="chk"><input type="checkbox"><span><strong>URL/slug</strong> wg ustalonej struktury <span class="todo">DO POTWIERDZENIA</span>: <code>gogrecja.pl/wyspa/region/hotel</code> czy <code>gogrecja.pl/hotel</code>.</span></label></li>
   </ol></div>
 
   <!-- 8 -->
-  <h2><span class="n">8</span> Publikacja i kontrola (QA)</h2>
+  <h2><span class="n">9</span> Publikacja i kontrola (QA)</h2>
   <div class="card"><ol class="steps">
     <li><label class="chk"><input type="checkbox"><span>Ustaw <strong>„Aktywny"</strong> → <strong>Zapisz</strong>.</span></label></li>
     <li><label class="chk"><input type="checkbox"><span><strong>Podgląd</strong> — sprawdź: zdjęcia, <strong>link rezerwacji działa</strong>, kategorie, mapa, literówki.</span></label></li>
@@ -135,6 +153,7 @@
 
   <h3>Szybka QA przed „Aktywny" ✓</h3>
   <div class="card"><ol class="steps">
+    <li><label class="chk"><input type="checkbox"><span>Sprawdzono <strong>opinie w 4 serwisach</strong>; opis oparty na dłuższych opiniach (+/-).</span></label></li>
     <li><label class="chk"><input type="checkbox"><span>Nazwa i lokalizacja poprawne (właściwa wyspa/miejscowość).</span></label></li>
     <li><label class="chk"><input type="checkbox"><span>Link prowadzi do <strong>tego</strong> hotelu i ma parametry afiliacyjne.</span></label></li>
     <li><label class="chk"><input type="checkbox"><span>Min. kilka zdjęć, skompresowane, główne ustawione.</span></label></li>
