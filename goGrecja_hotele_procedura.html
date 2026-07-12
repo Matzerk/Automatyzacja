@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>goGrecja — procedura dodawania hoteli (checklista)</title>
+<style>
+  :root{
+    --sea:#127bbf;--sea-d:#0c5c91;--sea-weak:#e8f3fb;--sky:#eaf4fb;--paper:#fff;--bg:#f2f7fb;
+    --ink:#15303f;--muted:#5d7486;--line:#dbe7f0;--done:#16915a;--done-bg:#e7f6ee;
+    --p1:#c0392b;--p2:#c77c0a;--p3:#127bbf;--warn:#b07d0a;--warn-bg:#fbf1da;
+    --shadow:0 1px 2px rgba(18,60,90,.05),0 10px 26px -16px rgba(18,60,90,.35);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;line-height:1.55}
+  .wrap{max-width:1040px;margin:0 auto;padding:34px 20px 70px}
+  header.top{background:linear-gradient(135deg,var(--sea),#3aa0dc);color:#fff;border-radius:16px;padding:26px;box-shadow:var(--shadow)}
+  .kicker{font-size:12px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;opacity:.9;margin:0 0 6px}
+  header.top h1{margin:0 0 6px;font-size:clamp(23px,4vw,32px);letter-spacing:-.02em}
+  header.top p{margin:0;color:#eaf6ff;font-size:14.5px;max-width:70ch}
+  .counter{margin-top:16px;display:inline-flex;gap:8px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:6px 15px;font-weight:700;font-size:13.5px}
+  .note{background:var(--warn-bg);border:1px solid #ffe0a3;border-left:4px solid var(--warn);border-radius:10px;padding:12px 15px;font-size:13.5px;color:#6b5a2b;margin:18px 0}
+  h2{font-size:19px;margin:34px 0 6px;display:flex;align-items:center;gap:9px}
+  h2 .n{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;background:var(--sea);color:#fff;font-size:14px;font-weight:800}
+  h3{font-size:15px;margin:18px 0 6px;color:var(--sea-d)}
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:6px 4px;margin-bottom:8px}
+  ol.steps{list-style:none;counter-reset:s;margin:0;padding:0}
+  ol.steps>li{counter-increment:s;display:flex;gap:12px;padding:11px 14px;border-bottom:1px solid var(--line)}
+  ol.steps>li:last-child{border-bottom:none}
+  ol.steps>li::before{content:counter(s);flex:none;width:26px;height:26px;display:grid;place-items:center;border-radius:8px;background:var(--sea-weak);color:var(--sea-d);font-weight:800;font-size:13px}
+  .chk{display:flex;gap:10px;align-items:flex-start}
+  input[type=checkbox]{width:18px;height:18px;accent-color:var(--done);cursor:pointer;margin-top:1px}
+  .step-b{font-weight:700}
+  .todo{background:#fff3da;border:1px solid #f0d69a;border-radius:5px;padding:0 6px;font-size:12px;font-weight:700;color:#8a6a12}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle}
+  th{background:var(--sky);font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);font-weight:800}
+  .colchk{width:40px;text-align:center}.colpri{width:56px;text-align:center}
+  tr:has(input:checked){background:var(--done-bg)}
+  tr:has(input:checked) .htl{color:var(--done);text-decoration:line-through}
+  .pri{font-weight:800;font-size:12.5px}.pri.P1{color:var(--p1)}.pri.P2{color:var(--p2)}.pri.P3{color:var(--p3)}
+  .reg{font-weight:700}.town{color:var(--muted);font-size:12.5px}
+  .scroll{overflow-x:auto;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
+  .btn{border:1px solid var(--line);background:#fff;color:var(--sea-d);font-weight:700;font-size:13px;padding:8px 14px;border-radius:9px;cursor:pointer}
+  .btn:hover{border-color:var(--sea);color:var(--sea)}
+  .fld{color:var(--muted);font-style:italic}
+  .clu{background:var(--sea-weak);font-weight:800;color:var(--sea-d)}
+  .cap{font-size:12.5px;color:var(--muted);margin:8px 2px 0}
+  @media print{.toolbar,.btn{display:none}body{background:#fff}.card,header.top,.scroll{box-shadow:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <p class="kicker">goGrecja · onboarding · dodawanie hoteli</p>
+    <h1>Procedura dodawania hoteli — checklista</h1>
+    <p>Krok po kroku dla nowej osoby: gdzie się logować, co zrobić, jak wyszukać linki rezerwacyjne, jak opublikować hotel. Na końcu — lista 50 hoteli do dodania wg klastrów.</p>
+    <div class="counter">✅ Odhaczone: <b id="cDone">0</b> / <b id="cAll">0</b></div>
+  </header>
+
+  <div class="note"><strong>Wersja robocza do konsultacji.</strong> Pola oznaczone <span class="todo">DO POTWIERDZENIA</span> uzupełnijcie z zespołem, który robił hotele na <strong>GoEgipt</strong> (konkretne panele, loginy, system linków partnerskich). Procedura oparta na procesie publikacji z e-Sylwester i logice dodawania hoteli — dopasujcie do realiów goGrecja.</div>
+
+  <div class="toolbar">
+    <button class="btn" onclick="setAll(true)">Zaznacz wszystko</button>
+    <button class="btn" onclick="setAll(false)">Odznacz</button>
+    <button class="btn" onclick="window.print()">Drukuj / PDF</button>
+  </div>
+
+  <!-- 1 -->
+  <h2><span class="n">1</span> Dostępy — gdzie się zalogować</h2>
+  <div class="scroll"><table>
+    <thead><tr><th class="colchk">✓</th><th>System</th><th>Adres / URL</th><th>Login</th><th>Do czego</th></tr></thead>
+    <tbody>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="step-b">Panel admin goGrecja</td><td class="fld">[DO POTWIERDZENIA] np. gogrecja.pl/admin</td><td class="fld">[login]</td><td>dodawanie i edycja hoteli</td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="step-b">Konto ChatGPT</td><td>chat.openai.com</td><td class="fld">[konto projektu]</td><td>opisy hoteli, teksty SEO</td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="step-b">Panel partnera / afiliacji</td><td class="fld">[DO POTWIERDZENIA] np. TravelLead / Wakacje.pl / system TO</td><td class="fld">[login]</td><td>źródło <strong>linków rezerwacyjnych</strong> do hoteli</td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="step-b">TinyPNG</td><td>tinypng.com</td><td>—</td><td>kompresja zdjęć</td></tr>
+      <tr><td class="colchk"><input type="checkbox"></td><td class="step-b">Serwer / FTP (opcjonalnie)</td><td class="fld">cyber_Folks — [DO POTWIERDZENIA]</td><td class="fld">[login]</td><td>zmiany bezpośrednio na serwerze</td></tr>
+    </tbody>
+  </table></div>
+
+  <!-- 2 -->
+  <h2><span class="n">2</span> Wybór hotelu i sprawdzenie duplikatu</h2>
+  <div class="card"><ol class="steps">
+    <li><label class="chk"><input type="checkbox"><span>Weź kolejny hotel z <strong>listy 50 hoteli</strong> (sekcja na dole) wg priorytetu P1 → P2 → P3.</span></label></li>
+    <li><label class="chk"><input type="checkbox"><span>Sprawdź w panelu, czy hotel <strong>już nie istnieje</strong> w bazie (wyszukaj po nazwie) — unikamy duplikatów.</span></label></li>
+  </ol></div>
+
+  <!-- 3 -->
+  <h2><span class="n">3</span> Zebranie danych hotelu</h2>
+  <div class="card"><ol class="steps">
+    <li><label class="chk"><input type="checkbox"><span><span class="step-b">Nazwa hotelu</span> + <span class="step-b">lokalizacja</span>: wyspa/region → miejscowość.</span></label></li>
+    <li><label class="chk"><input type="checkbox"><span><span class="step-b">Kategoria</span>: liczba gwiazdek + typ (all inclusive / dla rodzin / przy plaży / adults only / z aquaparkiem).</span></label></li>
+    <li><label class="chk"><input type="checkbox"><span><span class="step-b">Opis</span>: wygeneruj przez GPT (prompt hotelowy) — użyteczny, konkretny, także wady; nie „huraoptymistyczny".</span></label></li>
+    <li><label class="chk"><input type="checkbox"><span><span class="step-b">Udogodnienia</span>: basen, wyżywienie, plaża (odległość), wifi, parking, animacje, SPA.</span></label></li>
+    <li><label class="chk"><input type="checkbox"><span><span class="step-b">Mapa / współrzędne</span> + <span class="step-b">cena od</span> / sezon (jeśli podajecie).</span></label></li>
+  </ol></div>
+
+  <!-- 4 -->
+  <h2><span class="n">4</span> Linki rezerwacyjne — jak je wyszukać</h2>
+  <div class="card"><ol class="steps">
+    <li><label class="chk"><input type="checkbox"><span>Zaloguj się do <strong>panelu partnera/afiliacji</strong> <span class="todo">DO POTWIERDZENIA który</span>.</span></label></li>
+    <li><label class="chk"><input type="checkbox"><span>Wyszukaj hotel <strong>po nazwie + miejscowości</strong> (upewnij się, że to właściwy obiekt — te same nazwy bywają w różnych miejscach).</span></label></li>
+    <li><label class="chk"><input type="checkbox"><span>Skopiuj <strong>deep link do konkretnego hotelu</strong> (nie do strony głównej partnera).</span></label></li>
+    <li><label class="chk"><input type="checkbox"><span>Dodaj <strong>parametry afiliacyjne</strong> (aid / utm) jeśli system ich wymaga <span class="todo">DO POTWIERDZENIA format</span>.</span></label></li>
+    <li><label class="chk"><input type="checkbox"><span><strong>Przetestuj link</strong> — kliknij i sprawdź, że otwiera właściwy hotel i działa.</span></label></li>
+  </ol></div>
+
+  <!-- 5 -->
+  <h2><span class="n">5</span> Zdjęcia</h2>
+  <div class="card"><ol class="steps">
+    <li><label class="chk"><input type="checkbox"><span>Pobierz zdjęcia z <strong>dozwolonego źródła</strong> (materiały partnera/hotelu) <span class="todo">DO POTWIERDZENIA źródło i prawa</span>.</span></label></li>
+    <li><label class="chk"><input type="checkbox"><span>Format <strong>.jpg</strong>, skompresuj na <strong>tinypng.com</strong>.</span></label></li>
+    <li><label class="chk"><input type="checkbox"><span>Wgraj do oferty, ustaw <strong>zdjęcie główne</strong>, uporządkuj galerię.</span></label></li>
+  </ol></div>
+
+  <!-- 6 -->
+  <h2><span class="n">6</span> Wprowadzenie do panelu</h2>
+  <div class="card"><ol class="steps">
+    <li><label class="chk"><input type="checkbox"><span>Dodaj nowy hotel/ofertę → wypełnij pola: nazwa, opis, kategoria, cena, <strong>link rezerwacyjny</strong>, zdjęcia.</span></label></li>
+    <li><label class="chk"><input type="checkbox"><span><strong>Przypisz do kategorii/klastrów</strong> (~5): wyspa/region + typ (all inclusive, dla rodzin, przy plaży…).</span></label></li>
+    <li><label class="chk"><input type="checkbox"><span>Ustaw <strong>mapę/geolokalizację</strong>.</span></label></li>
+  </ol></div>
+
+  <!-- 7 -->
+  <h2><span class="n">7</span> SEO</h2>
+  <div class="card"><ol class="steps">
+    <li><label class="chk"><input type="checkbox"><span><strong>Tytuł</strong> + <strong>H1</strong> + <strong>meta opis</strong> (nazwa hotelu + miejscowość + rok).</span></label></li>
+    <li><label class="chk"><input type="checkbox"><span><strong>URL/slug</strong> wg ustalonej struktury <span class="todo">DO POTWIERDZENIA</span>: <code>gogrecja.pl/wyspa/region/hotel</code> czy <code>gogrecja.pl/hotel</code>.</span></label></li>
+  </ol></div>
+
+  <!-- 8 -->
+  <h2><span class="n">8</span> Publikacja i kontrola (QA)</h2>
+  <div class="card"><ol class="steps">
+    <li><label class="chk"><input type="checkbox"><span>Ustaw <strong>„Aktywny"</strong> → <strong>Zapisz</strong>.</span></label></li>
+    <li><label class="chk"><input type="checkbox"><span><strong>Podgląd</strong> — sprawdź: zdjęcia, <strong>link rezerwacji działa</strong>, kategorie, mapa, literówki.</span></label></li>
+    <li><label class="chk"><input type="checkbox"><span>Oznacz hotel jako <strong>zrobiony</strong> w liście 50 (dół strony).</span></label></li>
+  </ol></div>
+
+  <h3>Szybka QA przed „Aktywny" ✓</h3>
+  <div class="card"><ol class="steps">
+    <li><label class="chk"><input type="checkbox"><span>Nazwa i lokalizacja poprawne (właściwa wyspa/miejscowość).</span></label></li>
+    <li><label class="chk"><input type="checkbox"><span>Link prowadzi do <strong>tego</strong> hotelu i ma parametry afiliacyjne.</span></label></li>
+    <li><label class="chk"><input type="checkbox"><span>Min. kilka zdjęć, skompresowane, główne ustawione.</span></label></li>
+    <li><label class="chk"><input type="checkbox"><span>~5 kategorii przypisanych, opis bez błędów.</span></label></li>
+  </ol></div>
+
+  <!-- LISTA -->
+  <h2><span class="n">50</span> Lista hoteli do dodania — wg klastrów</h2>
+  <p class="cap">Kolumna „Hotel" do uzupełnienia w trakcie pracy (wpisujesz nazwę znalezioną przy dodawaniu). „Miejscowość" to sugerowany kurort startowy. Odhaczaj gotowe.</p>
+  <div class="scroll"><table>
+    <thead><tr><th class="colchk">✓</th><th style="width:30px">#</th><th>Wyspa / region</th><th>Miejscowość (sugestia)</th><th>Hotel (do uzupełnienia)</th><th class="colpri">Prio</th></tr></thead>
+    <tbody id="tbl"></tbody>
+  </table></div>
+
+</div>
+
+<script>
+  // Lista 50 hoteli po klastrach: [wyspa/region, miejscowosc, priorytet]
+  var H=[
+    ["Kreta","Chania","P1"],["Kreta","Rethymno","P1"],["Kreta","Heraklion","P1"],["Kreta","Agios Nikolaos","P1"],
+    ["Kreta","Elounda","P1"],["Kreta","Hersonissos","P1"],["Kreta","Malia","P2"],["Kreta","Bali","P2"],
+    ["Kreta","Georgioupoli","P2"],["Kreta","Ierapetra","P3"],
+    ["Rodos","Rodos-Miasto","P1"],["Rodos","Faliraki","P1"],["Rodos","Lindos","P1"],["Rodos","Kolymbia","P2"],
+    ["Rodos","Kallithea","P2"],["Rodos","Ialyssos","P2"],["Rodos","Pefkos","P3"],
+    ["Zakynthos","Laganas","P1"],["Zakynthos","Tsilivi","P1"],["Zakynthos","Kalamaki","P2"],
+    ["Zakynthos","Argassi","P2"],["Zakynthos","Alykes","P3"],
+    ["Kos","Kos-Miasto","P1"],["Kos","Kardamena","P1"],["Kos","Tigaki","P2"],["Kos","Marmari","P2"],["Kos","Kefalos","P3"],
+    ["Chalkidiki","Hanioti","P1"],["Chalkidiki","Pefkohori","P1"],["Chalkidiki","Kallithea (Kassandra)","P2"],
+    ["Chalkidiki","Nikiti (Sithonia)","P2"],["Chalkidiki","Nea Moudania","P3"],
+    ["Korfu","Korfu-Miasto","P1"],["Korfu","Kavos","P2"],["Korfu","Sidari","P2"],["Korfu","Dassia","P3"],
+    ["Santorini","Fira","P2"],["Santorini","Kamari","P2"],["Santorini","Perissa","P3"],
+    ["Lefkada","Nidri","P2"],["Lefkada","Vasiliki","P3"],
+    ["Thassos","Limenas","P2"],["Thassos","Potos","P3"],
+    ["Riwiera Olimpijska","Paralia","P2"],["Riwiera Olimpijska","Olympic Beach","P3"],
+    ["Kefalonia","Argostoli","P3"],
+    ["Ateny","Centrum","P3"],["Ateny","Glyfada","P3"],
+    ["Chalkidiki","Sarti (Sithonia)","P3"],["Kreta","Sissi","P3"]
+  ];
+  var tb=document.getElementById('tbl'), last='';
+  H.forEach(function(h,i){
+    if(h[0]!==last){
+      var r=document.createElement('tr');
+      r.innerHTML='<td></td><td></td><td class="clu" colspan="4">'+h[0]+'</td>';
+      tb.appendChild(r); last=h[0];
+    }
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td class="colchk"><input type="checkbox"></td><td>'+(i+1)+'</td>'+
+      '<td class="reg">'+h[0]+'</td><td class="town">'+h[1]+'</td>'+
+      '<td class="htl fld">— do uzupełnienia —</td>'+
+      '<td class="colpri"><span class="pri '+h[2]+'">'+h[2]+'</span></td>';
+    tb.appendChild(tr);
+  });
+  function refresh(){var a=document.querySelectorAll('input[type=checkbox]'),d=document.querySelectorAll('input[type=checkbox]:checked');document.getElementById('cAll').textContent=a.length;document.getElementById('cDone').textContent=d.length;}
+  function setAll(v){document.querySelectorAll('input[type=checkbox]').forEach(function(c){c.checked=v});refresh();}
+  document.addEventListener('change',function(e){if(e.target.matches('input[type=checkbox]'))refresh();});
+  refresh();
+</script>
+</body>
+</html>
