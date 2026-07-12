@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Go Grecja — dane do zebrania (formularz)</title>
+<style>
+  :root{
+    --sea:#127bbf;--sea-d:#0c5c91;--sky:#eaf4fb;--paper:#fff;--bg:#f2f7fb;
+    --ink:#15303f;--muted:#5d7486;--line:#dbe7f0;--bad:#cf4550;--warn:#c77c0a;--ok:#16915a;
+    --shadow:0 1px 2px rgba(18,60,90,.05),0 10px 26px -16px rgba(18,60,90,.35);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;line-height:1.5}
+  .wrap{max-width:920px;margin:0 auto;padding:34px 20px 70px}
+  header.top{background:linear-gradient(135deg,var(--sea),#3aa0dc);color:#fff;border-radius:16px;padding:24px 26px;box-shadow:var(--shadow)}
+  .kicker{font-size:12px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;opacity:.9;margin:0 0 6px}
+  header.top h1{margin:0 0 6px;font-size:clamp(22px,4vw,30px);letter-spacing:-.02em}
+  header.top p{margin:0;color:#eaf6ff;font-size:14.5px;max-width:64ch}
+  .note{background:#fff7e6;border:1px solid #ffe0a3;border-left:3px solid var(--warn);border-radius:10px;
+    padding:12px 15px;font-size:13.5px;color:#6b5a2b;margin:18px 0 8px}
+  h2{font-size:18px;margin:30px 0 10px;display:flex;align-items:center;gap:9px}
+  h2::before{content:"";width:9px;height:9px;border-radius:2px;background:var(--sea)}
+  .item{background:var(--paper);border:1px solid var(--line);border-radius:13px;box-shadow:var(--shadow);padding:16px 18px;margin-bottom:14px}
+  .item .h{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .item .h b{font-size:15px}
+  .st{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2px 8px;border-radius:6px;white-space:nowrap}
+  .st.brak{background:#fbe9ea;color:var(--bad)} .st.opc{background:#fff3da;color:var(--warn)}
+  .src{font-size:13px;color:var(--muted);margin:0 0 10px}
+  .src b{color:var(--ink)}
+  .fields{display:grid;gap:8px}
+  label{font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:3px}
+  input[type=text],textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-size:14px;font-family:inherit;color:var(--ink);background:#fbfdff}
+  input:focus,textarea:focus{outline:none;border-color:var(--sea);box-shadow:0 0 0 3px rgba(18,123,191,.14)}
+  textarea{min-height:64px;resize:vertical}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .prop{background:var(--sky);border:1px dashed var(--sea);border-radius:8px;padding:10px 12px;font-size:13px;margin-top:8px}
+  .prop b{color:var(--sea-d)}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+  .chip{background:#fff;border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600}
+  .toolbar{display:flex;gap:10px;margin-top:6px}
+  .btn{border:1px solid var(--line);background:#fff;color:var(--sea-d);font-weight:700;font-size:13px;padding:8px 14px;border-radius:9px;cursor:pointer}
+  .btn:hover{border-color:var(--sea);color:var(--sea)}
+  .foot{font-size:13px;color:var(--muted);margin-top:22px}
+  @media(max-width:620px){.row2{grid-template-columns:1fr}}
+  @media print{.toolbar,.btn{display:none}body{background:#fff}.item,header.top{box-shadow:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <p class="kicker">Go Grecja · przekazanie projektu</p>
+    <h1>Dane do zebrania — formularz</h1>
+    <p>Lista informacji brakujących do pełnego przekazania projektu poradników Go Grecja. Wypełnia <strong>właściciel projektu</strong> (osoba zarządzająca panelem — jak przy e-Sylwester). Można wpisać na ekranie i zapisać do PDF.</p>
+  </header>
+
+  <div class="note"><strong>Skąd te dane:</strong> to informacje wewnętrzne (dostępy, konto ChatGPT, kontakt, hosting) — <strong>nie da się ich „wyciągnąć" z zewnątrz</strong>. Źródłem jest właściciel/administrator projektu. Poniżej przy każdej pozycji jest wskazówka, u kogo/gdzie to znaleźć.</div>
+
+  <div class="toolbar">
+    <button class="btn" onclick="window.print()">Drukuj / zapisz PDF</button>
+  </div>
+
+  <h2>Dostępy (krytyczne)</h2>
+
+  <div class="item">
+    <div class="h"><b>1. Panel admin Go Grecja</b><span class="st brak">brak</span></div>
+    <p class="src"><b>Skąd:</b> od właściciela projektu / osoby, która zakładała panel (analogicznie do e-Sylwester: <code>…/admin/artykuly.html</code>).</p>
+    <div class="fields">
+      <div><label>URL panelu</label><input type="text" placeholder="np. https://go-grecja.pl/admin/artykuly.html"></div>
+      <div class="row2">
+        <div><label>Login</label><input type="text" placeholder="login"></div>
+        <div><label>Hasło</label><input type="text" placeholder="hasło"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="item">
+    <div class="h"><b>2. Konto ChatGPT projektu</b><span class="st brak">brak</span></div>
+    <p class="src"><b>Skąd:</b> od właściciela — to samo konto GPT, na którym generowane są artykuły i zdjęcia (Prompt napisz / Prompt zdjęcie).</p>
+    <div class="fields">
+      <div class="row2">
+        <div><label>Login / e-mail</label><input type="text" placeholder="adres e-mail"></div>
+        <div><label>Hasło</label><input type="text" placeholder="hasło (lub „współdzielone")"></div>
+      </div>
+      <div><label>Uwagi (plan, np. Plus/Team; kto ma dostęp)</label><input type="text" placeholder="np. ChatGPT Plus, dostęp współdzielony"></div>
+    </div>
+  </div>
+
+  <h2>Konfiguracja treści</h2>
+
+  <div class="item">
+    <div class="h"><b>3. Lista / mapa kategorii Go Grecja</b><span class="st brak">brak</span></div>
+    <p class="src"><b>Skąd:</b> z panelu admin (checkboxy kategorii przy edycji artykułu — do artykułu przypisuje się ~5). Poniżej moja <b>propozycja</b> do potwierdzenia/porównania z panelem.</p>
+    <div class="prop"><b>Propozycja kategorii (do potwierdzenia):</b>
+      <div class="chips">
+        <span class="chip">Wyspy greckie</span><span class="chip">Kreta</span><span class="chip">Rodos</span><span class="chip">Zakynthos</span><span class="chip">Santorini</span><span class="chip">Korfu</span><span class="chip">Kos</span>
+        <span class="chip">Grecja kontynentalna</span><span class="chip">Chalkidiki</span>
+        <span class="chip">Hotele</span><span class="chip">All inclusive</span><span class="chip">Dla rodzin / z dziećmi</span><span class="chip">Dla par</span>
+        <span class="chip">Plaże</span><span class="chip">Atrakcje / zwiedzanie</span><span class="chip">Poradniki praktyczne</span><span class="chip">Kuchnia</span><span class="chip">Sezon / terminy</span><span class="chip">Last minute</span>
+      </div>
+    </div>
+    <div class="fields" style="margin-top:10px">
+      <div><label>Rzeczywista lista kategorii z panelu (wklej)</label><textarea placeholder="Kategoria 1, Kategoria 2, ..."></textarea></div>
+    </div>
+  </div>
+
+  <div class="item">
+    <div class="h"><b>4. Liczba tematów + priorytety / prompty</b><span class="st opc">do potwierdzenia</span></div>
+    <p class="src"><b>Skąd:</b> zakładka „Artykuły" w panelu — policz pozycje i sprawdź, czy mają ustawione priorytety (P1–P4) oraz gotowe przyciski „Prompt napisz" / „Prompt zdjęcie".</p>
+    <div class="fields">
+      <div class="row2">
+        <div><label>Ile artykułów łącznie / nieaktywnych</label><input type="text" placeholder="np. 120 / 90 nieaktywnych"></div>
+        <div><label>Priorytety P1–P4 ustawione?</label><input type="text" placeholder="tak / nie / częściowo"></div>
+      </div>
+      <div><label>Czy artykuły mają gotowe prompty?</label><input type="text" placeholder="tak / nie / częściowo"></div>
+    </div>
+  </div>
+
+  <div class="item">
+    <div class="h"><b>5. Docelowe tempo publikacji</b><span class="st opc">do potwierdzenia</span></div>
+    <p class="src"><b>Skąd:</b> decyzja właściciela. Propozycja: jak przy Sylwestrze — <b>6 dziennie</b>.</p>
+    <div class="fields">
+      <div><label>Tempo (szt./dzień)</label><input type="text" placeholder="np. 6 dziennie"></div>
+    </div>
+  </div>
+
+  <h2>Organizacja</h2>
+
+  <div class="item">
+    <div class="h"><b>6. Osoba kontaktowa / eskalacja</b><span class="st brak">brak</span></div>
+    <p class="src"><b>Skąd:</b> od właściciela — do kogo pisać przy problemach technicznych / pytaniach.</p>
+    <div class="fields">
+      <div class="row2">
+        <div><label>Imię i rola</label><input type="text" placeholder="np. Gerard — właściciel"></div>
+        <div><label>Kontakt (e-mail / tel.)</label><input type="text" placeholder="e-mail / telefon"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="item">
+    <div class="h"><b>7. Hosting / FTP + panel domeny</b><span class="st opc">opcjonalne</span></div>
+    <p class="src"><b>Skąd:</b> od właściciela / firmy hostingowej — potrzebne tylko przy zmianach technicznych, nie do samego publikowania artykułów.</p>
+    <div class="fields">
+      <div><label>Hosting / FTP (host, login, hasło)</label><input type="text" placeholder="host / login / hasło"></div>
+      <div><label>Panel domeny (dostawca, login)</label><input type="text" placeholder="np. OVH / home.pl — login"></div>
+    </div>
+  </div>
+
+  <p class="foot"><strong>Uwaga bezpieczeństwa:</strong> po wypełnieniu formularz zawiera hasła — trzymaj go w bezpiecznym miejscu (menedżer haseł / prywatny dysk), nie wysyłaj otwartym mailem. Po przekazaniu projektu rozważ zmianę haseł.</p>
+</div>
+</body>
+</html>
