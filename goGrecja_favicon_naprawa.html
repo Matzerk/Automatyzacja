@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>goGrecja — naprawa favikony (diagnoza + podmiana)</title>
+<style>
+  :root{--sea:#127bbf;--sea-d:#0c5c91;--sea-weak:#e8f3fb;--bg:#f2f7fb;--paper:#fff;--ink:#15303f;--muted:#5d7486;--line:#dbe7f0;
+    --ok:#16915a;--ok-bg:#e7f6ee;--warn:#b07d0a;--warn-bg:#fbf1da;--bad:#c0392b;--bad-bg:#fdecea;
+    --shadow:0 1px 2px rgba(18,60,90,.05),0 10px 26px -16px rgba(18,60,90,.35);}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;line-height:1.55}
+  .wrap{max-width:960px;margin:0 auto;padding:32px 20px 70px}
+  header.top{background:linear-gradient(135deg,var(--sea),#3aa0dc);color:#fff;border-radius:16px;padding:24px 26px;box-shadow:var(--shadow)}
+  .kicker{font-size:12px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;opacity:.9;margin:0 0 6px}
+  header.top h1{margin:0 0 6px;font-size:clamp(22px,4vw,30px);letter-spacing:-.02em}
+  header.top p{margin:0;color:#eaf6ff;font-size:14.5px;max-width:72ch}
+  h2{font-size:18px;margin:30px 0 6px;display:flex;align-items:center;gap:9px}
+  h2 .n{display:inline-grid;place-items:center;width:27px;height:27px;border-radius:8px;background:var(--sea);color:#fff;font-size:13px;font-weight:800}
+  h3{font-size:14.5px;margin:16px 0 6px;color:var(--sea-d)}
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:16px 18px;margin-bottom:10px}
+  .diag{border-left:4px solid var(--sea)}
+  .diag.a{border-left-color:var(--bad)}.diag.b{border-left-color:var(--warn)}
+  .tag{display:inline-block;font-size:11.5px;font-weight:800;padding:2px 9px;border-radius:999px;margin-bottom:6px}
+  .tag.a{background:var(--bad-bg);color:var(--bad)}.tag.b{background:var(--warn-bg);color:var(--warn)}
+  .note{background:var(--warn-bg);border:1px solid #ffe0a3;border-left:4px solid var(--warn);border-radius:10px;padding:12px 15px;font-size:13.5px;color:#6b5a2b;margin:16px 0}
+  .ok{background:var(--ok-bg);border:1px solid #b7e3c8;border-left:4px solid var(--ok);border-radius:10px;padding:12px 15px;font-size:13.5px;color:#20563c;margin:16px 0}
+  pre{background:#0f2233;color:#e6f0f7;border-radius:10px;padding:13px 15px;overflow-x:auto;font-size:12.8px;line-height:1.5;margin:8px 0}
+  code{font-family:"SF Mono",Consolas,monospace}
+  p code,li code{background:var(--sea-weak);color:var(--sea-d);padding:1px 6px;border-radius:5px;font-size:12.8px}
+  ol.steps{list-style:none;counter-reset:s;margin:0;padding:0}
+  ol.steps>li{counter-increment:s;display:flex;gap:11px;padding:9px 0;border-bottom:1px solid var(--line)}
+  ol.steps>li:last-child{border-bottom:none}
+  ol.steps>li::before{content:counter(s);flex:none;width:24px;height:24px;display:grid;place-items:center;border-radius:7px;background:var(--sea-weak);color:var(--sea-d);font-weight:800;font-size:12px}
+  .path{background:#eef4f9;border:1px dashed var(--line);border-radius:8px;padding:8px 11px;font-family:monospace;font-size:12.8px;color:var(--sea-d)}
+  .prev{display:flex;align-items:center;gap:14px;margin:6px 0}
+  .prev .ic{width:48px;height:48px;border-radius:11px;box-shadow:var(--shadow)}
+  b.hl{color:var(--bad)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <p class="kicker">goGrecja · SEO / branding · favikona</p>
+    <h1>Naprawa favikony — dlaczego pokazuje GoEgipt i jak podmienić</h1>
+    <p>Diagnoza dwóch możliwych przyczyn + dokładne komendy do znalezienia winowajcy w plikach goGrecja, gotowy kod do wklejenia i podmiana ikony. Do wykonania na serwerze / w lokalnym folderze goGrecja.</p>
+  </header>
+
+  <div class="note"><strong>Zastrzeżenie:</strong> ta sesja (chmura) nie ma dostępu do gogrecja.pl ani do plików projektu (proxy blokuje domenę, a pliki są na serwerze cyber_Folks / w lokalnym folderze goGrecja). Dlatego poniżej jest <strong>gotowa procedura + kod</strong>, którą wykonuje się <strong>na serwerze albo lokalnym Claude Code</strong> w folderze goGrecja.</div>
+
+  <div class="prev">
+    <img class="ic" src="goGrecja_favicon.svg" alt="propozycja favikony goGrecja">
+    <div style="font-size:13.5px;color:var(--muted)">← Gotowa propozycja favikony (plik <code>goGrecja_favicon.svg</code> w załączeniu). Możesz jej użyć lub podmienić na Wasze logo goGrecja.</div>
+  </div>
+
+  <h2><span class="n">1</span> Co się właściwie dzieje (dwie przyczyny)</h2>
+
+  <div class="card diag a">
+    <span class="tag a">PRZYCZYNA A — najbardziej prawdopodobna</span>
+    <p style="margin:0 0 6px"><strong>Skopiowany szablon / plik z GoEgipt.</strong> goGrecja powstała na silniku i szablonie GoEgipt. W kodzie strony (Smarty) albo w katalogu głównym siedzi <b class="hl">favikona GoEgipt</b> — bo:</p>
+    <ul style="margin:0;font-size:13.7px">
+      <li>plik <code>favicon.ico</code> w katalogu głównym został <b class="hl">skopiowany z GoEgipt</b> (fizycznie to ikona Egiptu), <em>albo</em></li>
+      <li>w szablonie <code>&lt;head&gt;</code> jest <b class="hl">zaszyta ścieżka do GoEgipt</b>, np. <code>href="https://www.goegipt.pl/favicon.ico"</code> lub <code>/templates/goegipt/...</code>.</li>
+    </ul>
+  </div>
+
+  <div class="card diag b">
+    <span class="tag b">PRZYCZYNA B — jeśli w przeglądarce ikona jest już dobra</span>
+    <p style="margin:0">Jeśli <strong>w karcie przeglądarki</strong> favikona jest już poprawna (słońce/Grecja), a zła pokazuje się <strong>tylko w wynikach Google</strong> — to <strong>Google trzyma starą favikonę w cache</strong>. Sam plik na stronie może być OK; Google odświeży ikonę dopiero przy kolejnym zaindeksowaniu (dni–tygodnie). Wtedy naprawa = wymuszenie re-indeksacji (sekcja 4).</p>
+  </div>
+
+  <h2><span class="n">2</span> Znajdź winowajcę — komendy (na serwerze lub lokalnie w folderze goGrecja)</h2>
+  <div class="card">
+    <p style="margin:0 0 4px">Katalog na serwerze:</p>
+    <div class="path">/home/users/gogrecja/public_html/gogrecja.pl/</div>
+    <p style="margin:12px 0 4px">Uruchom (przez SSH w tym katalogu albo w lokalnym folderze goGrecja):</p>
+    <pre># 1) Wszystkie odwołania do favikony w kodzie/szablonach
+grep -rin "favicon" .
+
+# 2) Czy gdzieś zaszyta jest ścieżka/nazwa GoEgipt (to najczęstszy winowajca)
+grep -rin "goegipt" .
+
+# 3) Czym jest sam plik favicon.ico w katalogu głównym
+ls -la favicon.ico
+#   (porównaj rozmiar/datę z favicon.ico z GoEgipt — jeśli identyczny, to jest skopiowany)</pre>
+    <div class="ok" style="margin-bottom:0">Wynik z pkt 1 i 2 pokaże <strong>dokładny plik i linię</strong>, gdzie jest zła favikona — tam wprowadzasz poprawkę z sekcji 3.</div>
+  </div>
+
+  <h2><span class="n">3</span> Podmiana — pliki + kod</h2>
+
+  <h3>3a. Wgraj poprawne pliki ikon do katalogu głównego</h3>
+  <div class="card">
+    <p style="margin:0 0 6px">Do <code>/home/users/gogrecja/public_html/gogrecja.pl/</code> wgraj (nadpisując stare):</p>
+    <ul style="margin:0;font-size:13.7px">
+      <li><code>favicon.ico</code> — <b class="hl">Wasze</b> logo goGrecja (kwadrat, min. 48×48 px — wymóg Google)</li>
+      <li><code>favicon.svg</code> — z załączonego <code>goGrecja_favicon.svg</code> (lub Wasze logo)</li>
+      <li><code>favicon-32x32.png</code>, <code>favicon-16x16.png</code>, <code>apple-touch-icon.png</code> (180×180)</li>
+      <li><code>site.webmanifest</code></li>
+    </ul>
+    <div class="note" style="margin:12px 0 0">Nie masz PNG/ICO? Wrzuć <code>goGrecja_favicon.svg</code> (albo logo) na <strong>realfavicongenerator.net</strong> lub <strong>favicon.io</strong> — wygenerują komplet plików w kilka sekund.</div>
+  </div>
+
+  <h3>3b. Wstaw poprawny kod w &lt;head&gt; szablonu (zamiast starego)</h3>
+  <div class="card">
+    <pre>&lt;link rel="icon" type="image/svg+xml" href="/favicon.svg"&gt;
+&lt;link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png"&gt;
+&lt;link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png"&gt;
+&lt;link rel="shortcut icon" href="/favicon.ico"&gt;
+&lt;link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png"&gt;
+&lt;link rel="manifest" href="/site.webmanifest"&gt;
+&lt;meta property="og:image" content="https://www.gogrecja.pl/og-image.jpg"&gt;</pre>
+    <div class="note" style="margin:10px 0 0"><strong>Ważne:</strong> najpierw <strong>usuń stary tag</strong> favikony (ten znaleziony w sekcji 2) — inaczej zostanie konflikt i przeglądarka może dalej brać starą ikonę. Ścieżki bezwzględne od <code>/</code> (nie względne).</div>
+  </div>
+
+  <h3>3c. site.webmanifest (przykład)</h3>
+  <div class="card">
+    <pre>{
+  "name": "goGrecja",
+  "short_name": "goGrecja",
+  "icons": [
+    { "src": "/favicon-32x32.png", "sizes": "32x32", "type": "image/png" },
+    { "src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png" }
+  ],
+  "theme_color": "#0d6cb2",
+  "background_color": "#ffffff",
+  "display": "standalone"
+}</pre>
+  </div>
+
+  <h2><span class="n">4</span> Odśwież cache i wymuś re-indeksację Google</h2>
+  <div class="card"><ol class="steps">
+    <li>Wyczyść cache po stronie serwera/CDN, jeśli jest (np. cyber_Folks / Cloudflare „Purge").</li>
+    <li>W przeglądarce: <strong>twarde odświeżenie</strong> <code>Ctrl+F5</code>; sprawdź w trybie incognito.</li>
+    <li>Sprawdź, że plik faktycznie się serwuje: wejdź wprost na <code>https://www.gogrecja.pl/favicon.ico</code> — ma pokazać <strong>nową</strong> ikonę.</li>
+    <li><strong>Google Search Console</strong> → wklej adres strony głównej → <strong>„Poproś o zindeksowanie"</strong>. Ikona w wynikach Google odświeży się przy kolejnym crawl (od kilku dni do ~2 tygodni).</li>
+  </ol></div>
+  <div class="ok">Wymogi Google dla favikony w wynikach: kwadratowa, min. <strong>48×48 px</strong> (najlepiej wielokrotność 48), stały adres URL, ten sam plik przy każdym crawl. Jeśli ikona jest za mała lub się zmienia — Google pokazuje domyślną kulkę zamiast Waszej.</div>
+
+  <h2><span class="n">5</span> Weryfikacja (checklista)</h2>
+  <div class="card"><ol class="steps">
+    <li><code>grep -rin "goegipt" .</code> → <strong>zero</strong> trafień w favikonie/head.</li>
+    <li><code>https://www.gogrecja.pl/favicon.ico</code> otwiera <strong>nową</strong> ikonę.</li>
+    <li>Karta przeglądarki (incognito) pokazuje nową favikonę.</li>
+    <li>realfavicongenerator.net → „Check favicon" dla gogrecja.pl = wszystko zielone.</li>
+    <li>Search Console: strona główna zgłoszona do re-indeksacji.</li>
+  </ol></div>
+
+</div>
+</body>
+</html>
